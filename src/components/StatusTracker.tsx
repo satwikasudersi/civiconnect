@@ -11,7 +11,8 @@ import {
   Eye,
   Clock,
   CheckCircle,
-  AlertTriangle
+  AlertTriangle,
+  HelpCircle
 } from 'lucide-react';
 
 interface Issue {
@@ -22,8 +23,9 @@ interface Issue {
   date: string;
   status: 'reported' | 'progress' | 'resolved';
   description: string;
-  images: number;
+  images: string[];
   suggestions: number;
+  enquiries: number;
 }
 
 const mockIssues: Issue[] = [
@@ -34,9 +36,10 @@ const mockIssues: Issue[] = [
     location: 'Main Street & 5th Ave',
     date: '2024-01-15',
     status: 'progress',
-    description: 'Deep pothole causing damage to vehicles',
-    images: 3,
-    suggestions: 5
+    description: 'Deep pothole causing damage to vehicles. Multiple cars have reported tire damage.',
+    images: ['/api/placeholder/400/300', '/api/placeholder/400/300', '/api/placeholder/400/300'],
+    suggestions: 5,
+    enquiries: 2
   },
   {
     id: '2',
@@ -45,9 +48,10 @@ const mockIssues: Issue[] = [
     location: 'Central Park East Entrance',
     date: '2024-01-14',
     status: 'resolved',
-    description: 'Streetlight has been out for over a week',
-    images: 1,
-    suggestions: 2
+    description: 'Streetlight has been out for over a week, making the area unsafe for evening joggers.',
+    images: ['/api/placeholder/400/300'],
+    suggestions: 2,
+    enquiries: 1
   },
   {
     id: '3',
@@ -56,13 +60,14 @@ const mockIssues: Issue[] = [
     location: '2nd Street Bus Stop',
     date: '2024-01-16',
     status: 'reported',
-    description: 'Multiple trash bins overflowing for days',
-    images: 2,
-    suggestions: 8
+    description: 'Multiple trash bins overflowing for days, creating unsanitary conditions.',
+    images: ['/api/placeholder/400/300', '/api/placeholder/400/300'],
+    suggestions: 8,
+    enquiries: 3
   }
 ];
 
-const StatusTracker = ({ onViewSuggestions }: { onViewSuggestions: (issueId: string) => void }) => {
+const StatusTracker = ({ onViewSuggestions }: { onViewSuggestions: (issue: Issue) => void }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
@@ -209,7 +214,11 @@ const StatusTracker = ({ onViewSuggestions }: { onViewSuggestions: (issueId: str
                     </div>
                     <div className="flex items-center gap-1">
                       <Eye className="w-4 h-4" />
-                      {issue.images} photo{issue.images !== 1 ? 's' : ''}
+                      {issue.images.length} photo{issue.images.length !== 1 ? 's' : ''}
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <HelpCircle className="w-4 h-4" />
+                      {issue.enquiries} enquir{issue.enquiries !== 1 ? 'ies' : 'y'}
                     </div>
                   </div>
                 </div>
@@ -217,11 +226,18 @@ const StatusTracker = ({ onViewSuggestions }: { onViewSuggestions: (issueId: str
                 <div className="flex items-center gap-3">
                   <Button
                     variant="outline"
-                    onClick={() => onViewSuggestions(issue.id)}
+                    onClick={() => onViewSuggestions(issue)}
                     className="flex items-center gap-2 hover:shadow-soft transition-smooth"
                   >
                     <MessageCircle className="w-4 h-4" />
                     {issue.suggestions} Suggestions
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="flex items-center gap-2 hover:shadow-soft transition-smooth"
+                  >
+                    <HelpCircle className="w-4 h-4" />
+                    {issue.enquiries} Enquiries
                   </Button>
                 </div>
               </div>

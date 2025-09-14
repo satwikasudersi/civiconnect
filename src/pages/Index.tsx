@@ -8,10 +8,10 @@ import civicHero from '@/assets/civic-hero.jpg';
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState('reports');
-  const [selectedIssue, setSelectedIssue] = useState<string | null>(null);
+  const [selectedIssue, setSelectedIssue] = useState<any | null>(null);
 
-  const handleViewSuggestions = (issueId: string) => {
-    setSelectedIssue(issueId);
+  const handleViewSuggestions = (issue: any) => {
+    setSelectedIssue(issue);
     setActiveTab('suggestions');
   };
 
@@ -26,7 +26,7 @@ const Index = () => {
         return <ReportIssues />;
       case 'suggestions':
         return selectedIssue ? (
-          <Suggestions issueId={selectedIssue} onBack={handleBackToStatus} />
+          <Suggestions issue={selectedIssue} onBack={handleBackToStatus} />
         ) : (
           <div className="max-w-4xl mx-auto p-6 text-center">
             <p className="text-muted-foreground">Select an issue from the Status Tracker to view suggestions.</p>

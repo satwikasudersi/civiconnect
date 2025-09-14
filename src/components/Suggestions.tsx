@@ -51,17 +51,20 @@ const mockSuggestions: Suggestion[] = [
   }
 ];
 
-const mockIssue = {
-  id: '1',
-  title: 'Large pothole on Main Street',
-  category: 'Road Issues',
-  location: 'Main Street & 5th Ave',
-  description: 'Deep pothole causing damage to vehicles. Multiple cars have reported tire damage.',
-  status: 'progress' as const,
-  date: '2024-01-15'
-};
+interface Issue {
+  id: string;
+  title: string;
+  category: string;
+  location: string;
+  date: string;
+  status: 'reported' | 'progress' | 'resolved';
+  description: string;
+  images: string[];
+  suggestions: number;
+  enquiries: number;
+}
 
-const Suggestions = ({ issueId, onBack }: { issueId: string; onBack: () => void }) => {
+const Suggestions = ({ issue, onBack }: { issue: Issue; onBack: () => void }) => {
   const { toast } = useToast();
   const [newSuggestion, setNewSuggestion] = useState('');
   const [suggestions, setSuggestions] = useState(mockSuggestions);
@@ -143,21 +146,21 @@ const Suggestions = ({ issueId, onBack }: { issueId: string; onBack: () => void 
 
       {/* Issue Details */}
       <Card className="p-6 mb-6 shadow-card bg-gradient-card">
-        <div className="flex items-start justify-between mb-4">
+        <div className="flex flex-col lg:flex-row gap-6">
           <div className="flex-1">
             <div className="flex items-center gap-3 mb-2">
-              <h1 className="text-2xl font-bold text-foreground">{mockIssue.title}</h1>
-              {getStatusBadge(mockIssue.status)}
+              <h1 className="text-2xl font-bold text-foreground">{issue.title}</h1>
+              {getStatusBadge(issue.status)}
             </div>
-            <p className="text-muted-foreground mb-4">{mockIssue.description}</p>
-            <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+            <p className="text-muted-foreground mb-4">{issue.description}</p>
+            <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground mb-4">
               <div className="flex items-center gap-1">
                 <MapPin className="w-4 h-4" />
-                {mockIssue.location}
+                {issue.location}
               </div>
               <div className="flex items-center gap-1">
                 <Calendar className="w-4 h-4" />
-                Reported {new Date(mockIssue.date).toLocaleDateString()}
+                Reported {new Date(issue.date).toLocaleDateString()}
               </div>
               <div className="flex items-center gap-1">
                 <MessageSquare className="w-4 h-4" />
@@ -165,6 +168,23 @@ const Suggestions = ({ issueId, onBack }: { issueId: string; onBack: () => void 
               </div>
             </div>
           </div>
+          
+          {/* Issue Images */}
+          {issue.images.length > 0 && (
+            <div className="lg:w-80">
+              <h3 className="text-sm font-medium text-muted-foreground mb-3">Issue Photos</h3>
+              <div className="grid grid-cols-2 gap-2">
+                {issue.images.map((image, index) => (
+                  <img
+                    key={index}
+                    src={image}
+                    alt={`Issue photo ${index + 1}`}
+                    className="w-full h-24 object-cover rounded-lg border shadow-soft"
+                  />
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </Card>
 
