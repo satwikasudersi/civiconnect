@@ -58,7 +58,7 @@ const Index = () => {
           <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
             <div className="text-center">
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-primary-foreground mb-6">
-                Make Your Community Better
+                Build Better Together
               </h1>
               <p className="text-xl md:text-2xl text-primary-foreground/90 mb-8 max-w-3xl mx-auto">
                 Report issues, share solutions, and track progress as we work together to improve our neighborhoods.
