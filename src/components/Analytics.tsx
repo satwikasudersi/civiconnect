@@ -39,7 +39,7 @@ const Analytics = () => {
     { location: 'Suncity', issues: 23 },
     { location: 'Manikonda', issues: 18 },
     { location: 'Tolichowki', issues: 15 },
-    { location: 'Park District', issues: 12 },
+    { location: 'Langerhouze', issues: 12 },
     { location: 'Commercial Area', issues: 9 }
   ];
 
