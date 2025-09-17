@@ -36,7 +36,7 @@ const Analytics = () => {
   ];
 
   const topLocations = [
-    { location: 'Downtown District', issues: 23 },
+    { location: 'Suncity', issues: 23 },
     { location: 'Residential Area North', issues: 18 },
     { location: 'Industrial Zone', issues: 15 },
     { location: 'Park District', issues: 12 },
