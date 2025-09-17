@@ -45,7 +45,7 @@ const Index = () => {
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-primary-foreground mb-6">
                 Build Better Together
               </h1>
-              <p className="text-xl mb-8 max-w-3xl mx-[106px] text-slate-50 md:text-2xl font-medium text-center">Your Streets. Your Voice. Your Power.</p>
+              <p className="text-xl mb-8 max-w-3xl mx-[106px] text-slate-50 text-center font-normal md:text-2xl">Your Streets. Your Voice. Your Power.</p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <button onClick={() => document.getElementById('report-form')?.scrollIntoView({
               behavior: 'smooth'
