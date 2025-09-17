@@ -15,7 +15,9 @@ import {
   Trash2,
   Car,
   TreePine,
-  Shield
+  Shield,
+  Droplets,
+  AlertTriangle
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { saveIssue } from '@/lib/issueStorage';
@@ -34,10 +36,12 @@ const ReportIssues = () => {
   const categories = [
     { id: 'potholes', label: 'Potholes & Road Issues', icon: Car },
     { id: 'streetlights', label: 'Street Lighting', icon: Lightbulb },
+    { id: 'water', label: 'Water Issue', icon: Droplets },
     { id: 'trash', label: 'Waste Management', icon: Trash2 },
     { id: 'construction', label: 'Construction Issues', icon: Construction },
     { id: 'parks', label: 'Parks & Recreation', icon: TreePine },
     { id: 'authority', label: 'Authority Issues', icon: Shield },
+    { id: 'corpse', label: 'Corpse on Streets', icon: AlertTriangle },
     { id: 'other', label: 'Other Issues', icon: AlertCircle }
   ];
 
