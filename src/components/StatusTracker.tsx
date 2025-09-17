@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -14,62 +14,32 @@ import {
   AlertTriangle,
   HelpCircle
 } from 'lucide-react';
-
-interface Issue {
-  id: string;
-  title: string;
-  category: string;
-  location: string;
-  date: string;
-  status: 'reported' | 'progress' | 'resolved';
-  description: string;
-  images: string[];
-  suggestions: number;
-  enquiries: number;
-}
-
-const mockIssues: Issue[] = [
-  {
-    id: '1',
-    title: 'Large pothole on Main Street',
-    category: 'Road Issues',
-    location: 'Main Street & 5th Ave',
-    date: '2024-01-15',
-    status: 'progress',
-    description: 'Deep pothole causing damage to vehicles. Multiple cars have reported tire damage.',
-    images: ['/api/placeholder/400/300', '/api/placeholder/400/300', '/api/placeholder/400/300'],
-    suggestions: 5,
-    enquiries: 2
-  },
-  {
-    id: '2',
-    title: 'Broken streetlight in park',
-    category: 'Street Lighting',
-    location: 'Central Park East Entrance',
-    date: '2024-01-14',
-    status: 'resolved',
-    description: 'Streetlight has been out for over a week, making the area unsafe for evening joggers.',
-    images: ['/api/placeholder/400/300'],
-    suggestions: 2,
-    enquiries: 1
-  },
-  {
-    id: '3',
-    title: 'Overflowing trash bins',
-    category: 'Waste Management',
-    location: '2nd Street Bus Stop',
-    date: '2024-01-16',
-    status: 'reported',
-    description: 'Multiple trash bins overflowing for days, creating unsanitary conditions.',
-    images: ['/api/placeholder/400/300', '/api/placeholder/400/300'],
-    suggestions: 8,
-    enquiries: 3
-  }
-];
+import { getIssues, Issue } from '@/lib/issueStorage';
 
 const StatusTracker = ({ onViewSuggestions }: { onViewSuggestions: (issue: Issue) => void }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [issues, setIssues] = useState<Issue[]>([]);
+
+  useEffect(() => {
+    setIssues(getIssues());
+  }, []);
+
+  const getCategoryLabel = (issue: Issue) => {
+    if (issue.customCategory) return issue.customCategory;
+    
+    const categoryLabels: Record<string, string> = {
+      potholes: 'Potholes & Road Issues',
+      streetlights: 'Street Lighting',
+      trash: 'Waste Management',
+      construction: 'Construction Issues',
+      parks: 'Parks & Recreation',
+      authority: 'Authority Issues',
+      other: 'Other Issues'
+    };
+    
+    return categoryLabels[issue.category] || issue.category;
+  };
 
   const getStatusInfo = (status: Issue['status']) => {
     switch (status) {
@@ -100,18 +70,19 @@ const StatusTracker = ({ onViewSuggestions }: { onViewSuggestions: (issue: Issue
     }
   };
 
-  const filteredIssues = mockIssues.filter(issue => {
+  const filteredIssues = issues.filter(issue => {
+    const categoryLabel = getCategoryLabel(issue);
     const matchesSearch = issue.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          issue.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         issue.category.toLowerCase().includes(searchTerm.toLowerCase());
+                         categoryLabel.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || issue.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
   const statusCounts = {
-    reported: mockIssues.filter(i => i.status === 'reported').length,
-    progress: mockIssues.filter(i => i.status === 'progress').length,
-    resolved: mockIssues.filter(i => i.status === 'resolved').length
+    reported: issues.filter(i => i.status === 'reported').length,
+    progress: issues.filter(i => i.status === 'progress').length,
+    resolved: issues.filter(i => i.status === 'resolved').length
   };
 
   return (
@@ -198,6 +169,12 @@ const StatusTracker = ({ onViewSuggestions }: { onViewSuggestions: (issue: Issue
                     <Badge className={`${statusInfo.color} flex items-center gap-1`}>
                       <StatusIcon className="w-3 h-3" />
                       {statusInfo.label}
+                    </Badge>
+                  </div>
+                  
+                  <div className="flex items-center gap-2 mb-2">
+                    <Badge variant="secondary" className="text-xs">
+                      {getCategoryLabel(issue)}
                     </Badge>
                   </div>
                   

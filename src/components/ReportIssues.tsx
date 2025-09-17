@@ -14,15 +14,18 @@ import {
   Lightbulb,
   Trash2,
   Car,
-  TreePine
+  TreePine,
+  Shield
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { saveIssue } from '@/lib/issueStorage';
 
 const ReportIssues = () => {
   const { toast } = useToast();
   const [formData, setFormData] = useState({
     title: '',
     category: '',
+    customCategory: '',
     description: '',
     location: '',
     images: [] as File[]
@@ -34,6 +37,7 @@ const ReportIssues = () => {
     { id: 'trash', label: 'Waste Management', icon: Trash2 },
     { id: 'construction', label: 'Construction Issues', icon: Construction },
     { id: 'parks', label: 'Parks & Recreation', icon: TreePine },
+    { id: 'authority', label: 'Authority Issues', icon: Shield },
     { id: 'other', label: 'Other Issues', icon: AlertCircle }
   ];
 
@@ -64,19 +68,48 @@ const ReportIssues = () => {
       return;
     }
 
-    // Here you would submit to your backend
-    toast({
-      title: "Report Submitted",
-      description: "Your issue has been reported successfully. You'll receive updates on its progress.",
+    if (formData.category === 'other' && !formData.customCategory) {
+      toast({
+        title: "Missing Information",
+        description: "Please specify the custom category.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Convert images to base64 for storage
+    const imagePromises = formData.images.map(file => {
+      return new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.readAsDataURL(file);
+      });
     });
 
-    // Reset form
-    setFormData({
-      title: '',
-      category: '',
-      description: '',
-      location: '',
-      images: []
+    Promise.all(imagePromises).then(images => {
+      saveIssue({
+        title: formData.title,
+        category: formData.category,
+        customCategory: formData.category === 'other' ? formData.customCategory : undefined,
+        description: formData.description,
+        location: formData.location,
+        images
+      });
+
+      toast({
+        title: "Report Submitted",
+        description: "Your issue has been reported successfully. You'll receive updates on its progress.",
+      });
+
+      // Reset form
+      setFormData({
+        title: '',
+        category: '',
+        customCategory: '',
+        description: '',
+        location: '',
+        images: []
+      });
     });
   };
 
@@ -139,6 +172,21 @@ const ReportIssues = () => {
               </SelectContent>
             </Select>
           </div>
+
+          {/* Custom Category Input */}
+          {formData.category === 'other' && (
+            <div className="space-y-2">
+              <Label htmlFor="customCategory" className="text-sm font-medium">Specify Category *</Label>
+              <Input
+                id="customCategory"
+                value={formData.customCategory}
+                onChange={(e) => setFormData(prev => ({ ...prev, customCategory: e.target.value }))}
+                placeholder="Enter specific category"
+                className="transition-smooth focus:shadow-soft"
+                required
+              />
+            </div>
+          )}
 
           {/* Description */}
           <div className="space-y-2">
