@@ -40,7 +40,7 @@ const Analytics = () => {
     { location: 'Manikonda', issues: 18 },
     { location: 'Tolichowki', issues: 15 },
     { location: 'Langerhouze', issues: 12 },
-    { location: 'Commercial Area', issues: 9 }
+    { location: 'VJIT', issues: 9 }
   ];
 
   const getActivityIcon = (type: string) => {
