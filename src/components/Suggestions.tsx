@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -17,39 +17,9 @@ import {
   Lightbulb
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { getSuggestions, saveSuggestion, updateSuggestionLikes, Suggestion as StoredSuggestion } from '@/lib/issueStorage';
 
-interface Suggestion {
-  id: string;
-  author: string;
-  content: string;
-  date: string;
-  likes: number;
-  images?: string[];
-}
-
-const mockSuggestions: Suggestion[] = [
-  {
-    id: '1',
-    author: 'Sarah Chen',
-    content: 'I suggest using a more durable asphalt mix for this area since it gets heavy truck traffic. The city should also consider installing proper drainage to prevent water pooling.',
-    date: '2024-01-16',
-    likes: 12
-  },
-  {
-    id: '2',
-    author: 'Mike Rodriguez',
-    content: 'Temporary solution: Place warning cones around the pothole until repairs can be made. I can volunteer to help coordinate with local businesses for temporary signage.',
-    date: '2024-01-15',
-    likes: 8
-  },
-  {
-    id: '3',
-    author: 'Community Manager',
-    content: 'Thank you for the suggestions! We have scheduled this for repair next week. The road crew will use the enhanced asphalt mix as recommended.',
-    date: '2024-01-17',
-    likes: 15
-  }
-];
+type Suggestion = StoredSuggestion;
 
 interface Issue {
   id: string;
@@ -67,8 +37,12 @@ interface Issue {
 const Suggestions = ({ issue, onBack }: { issue: Issue; onBack: () => void }) => {
   const { toast } = useToast();
   const [newSuggestion, setNewSuggestion] = useState('');
-  const [suggestions, setSuggestions] = useState(mockSuggestions);
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [likedSuggestions, setLikedSuggestions] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    setSuggestions(getSuggestions(issue.id));
+  }, [issue.id]);
 
   const handleSubmitSuggestion = (e: React.FormEvent) => {
     e.preventDefault();
@@ -82,13 +56,11 @@ const Suggestions = ({ issue, onBack }: { issue: Issue; onBack: () => void }) =>
       return;
     }
 
-    const suggestion: Suggestion = {
-      id: Date.now().toString(),
+    const suggestion = saveSuggestion({
+      issueId: issue.id,
       author: 'You',
-      content: newSuggestion.trim(),
-      date: new Date().toISOString().split('T')[0],
-      likes: 0
-    };
+      content: newSuggestion.trim()
+    });
 
     setSuggestions(prev => [suggestion, ...prev]);
     setNewSuggestion('');
@@ -101,14 +73,20 @@ const Suggestions = ({ issue, onBack }: { issue: Issue; onBack: () => void }) =>
 
   const handleLike = (suggestionId: string) => {
     const isLiked = likedSuggestions.has(suggestionId);
+    const currentSuggestion = suggestions.find(s => s.id === suggestionId);
+    if (!currentSuggestion) return;
+    
+    const newLikes = currentSuggestion.likes + (isLiked ? -1 : 1);
     
     setSuggestions(prev => 
       prev.map(suggestion => 
         suggestion.id === suggestionId 
-          ? { ...suggestion, likes: suggestion.likes + (isLiked ? -1 : 1) }
+          ? { ...suggestion, likes: newLikes }
           : suggestion
       )
     );
+
+    updateSuggestionLikes(suggestionId, newLikes);
 
     setLikedSuggestions(prev => {
       const newSet = new Set(prev);

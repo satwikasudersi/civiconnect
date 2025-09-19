@@ -12,11 +12,14 @@ import {
   Clock,
   CheckCircle,
   AlertTriangle,
-  HelpCircle
+  HelpCircle,
+  Trash
 } from 'lucide-react';
-import { getIssues, Issue } from '@/lib/issueStorage';
+import { getIssues, Issue, deleteIssue } from '@/lib/issueStorage';
+import { useToast } from '@/hooks/use-toast';
 
 const StatusTracker = ({ onViewSuggestions }: { onViewSuggestions: (issue: Issue) => void }) => {
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [issues, setIssues] = useState<Issue[]>([]);
@@ -31,14 +34,33 @@ const StatusTracker = ({ onViewSuggestions }: { onViewSuggestions: (issue: Issue
     const categoryLabels: Record<string, string> = {
       potholes: 'Potholes & Road Issues',
       streetlights: 'Street Lighting',
+      water: 'Water Issue',
       trash: 'Waste Management',
       construction: 'Construction Issues',
       parks: 'Parks & Recreation',
       authority: 'Authority Issues',
+      corpse: 'Corpse on Streets',
       other: 'Other Issues'
     };
     
     return categoryLabels[issue.category] || issue.category;
+  };
+
+  const handleDeleteIssue = (issueId: string) => {
+    const success = deleteIssue(issueId);
+    if (success) {
+      setIssues(getIssues());
+      toast({
+        title: "Issue Deleted",
+        description: "The issue has been successfully deleted."
+      });
+    } else {
+      toast({
+        title: "Error",
+        description: "Failed to delete the issue. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   const getStatusInfo = (status: Issue['status']) => {
@@ -215,6 +237,14 @@ const StatusTracker = ({ onViewSuggestions }: { onViewSuggestions: (issue: Issue
                   >
                     <HelpCircle className="w-4 h-4" />
                     {issue.enquiries} Enquiries
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    onClick={() => handleDeleteIssue(issue.id)}
+                    className="flex items-center gap-2 hover:shadow-soft transition-smooth"
+                  >
+                    <Trash className="w-4 h-4" />
+                    Delete
                   </Button>
                 </div>
               </div>
