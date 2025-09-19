@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -17,10 +17,14 @@ import {
   TreePine,
   Shield,
   Droplets,
-  AlertTriangle
+  AlertTriangle,
+  Mic,
+  MicOff,
+  Square
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { saveIssue } from '@/lib/issueStorage';
+import { useSpeechRecognition } from '@/hooks/useSpeechRecognition';
 
 const ReportIssues = () => {
   const { toast } = useToast();
@@ -32,6 +36,26 @@ const ReportIssues = () => {
     location: '',
     images: [] as File[]
   });
+
+  const [activeField, setActiveField] = useState<'title' | 'description' | 'location' | null>(null);
+  const { 
+    isSupported: speechSupported, 
+    isListening, 
+    transcript, 
+    startListening, 
+    stopListening, 
+    resetTranscript 
+  } = useSpeechRecognition();
+
+  // Handle speech recognition transcript updates
+  useEffect(() => {
+    if (transcript && activeField) {
+      setFormData(prev => ({
+        ...prev,
+        [activeField]: transcript
+      }));
+    }
+  }, [transcript, activeField]);
 
   const categories = [
     { id: 'potholes', label: 'Potholes & Road Issues', icon: Car },
@@ -117,6 +141,36 @@ const ReportIssues = () => {
     });
   };
 
+  const startSpeechRecognition = (field: 'title' | 'description' | 'location') => {
+    if (!speechSupported) {
+      toast({
+        title: "Speech Recognition Not Supported",
+        description: "Your browser doesn't support speech recognition.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setActiveField(field);
+    resetTranscript();
+    startListening();
+    
+    toast({
+      title: "Listening...",
+      description: `Speak your ${field}. Click stop when finished.`
+    });
+  };
+
+  const stopSpeechRecognition = () => {
+    stopListening();
+    setActiveField(null);
+    
+    toast({
+      title: "Recording Stopped",
+      description: "Your speech has been converted to text."
+    });
+  };
+
   const getCurrentLocation = () => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition((position) => {
@@ -144,14 +198,41 @@ const ReportIssues = () => {
           {/* Issue Title */}
           <div className="space-y-2">
             <Label htmlFor="title" className="text-sm font-medium">Issue Title *</Label>
-            <Input
-              id="title"
-              value={formData.title}
-              onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-              placeholder="Brief description of the issue"
-              className="transition-smooth focus:shadow-soft"
-              required
-            />
+            <div className="flex space-x-2">
+              <Input
+                id="title"
+                value={formData.title}
+                onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                placeholder="Brief description of the issue"
+                className="flex-1 transition-smooth focus:shadow-soft"
+                required
+              />
+              {speechSupported && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    if (isListening && activeField === 'title') {
+                      stopSpeechRecognition();
+                    } else {
+                      startSpeechRecognition('title');
+                    }
+                  }}
+                  className={`px-3 hover:shadow-soft transition-smooth ${
+                    isListening && activeField === 'title' ? 'bg-red-500 text-white hover:bg-red-600' : ''
+                  }`}
+                >
+                  {isListening && activeField === 'title' ? (
+                    <Square className="w-4 h-4" />
+                  ) : (
+                    <Mic className="w-4 h-4" />
+                  )}
+                </Button>
+              )}
+            </div>
+            {isListening && activeField === 'title' && (
+              <p className="text-xs text-blue-600 animate-pulse">🎤 Listening... Click stop when finished</p>
+            )}
           </div>
 
           {/* Category Selection */}
@@ -194,7 +275,38 @@ const ReportIssues = () => {
 
           {/* Description */}
           <div className="space-y-2">
-            <Label htmlFor="description" className="text-sm font-medium">Description *</Label>
+            <div className="flex justify-between items-center">
+              <Label htmlFor="description" className="text-sm font-medium">Description *</Label>
+              {speechSupported && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    if (isListening && activeField === 'description') {
+                      stopSpeechRecognition();
+                    } else {
+                      startSpeechRecognition('description');
+                    }
+                  }}
+                  className={`px-3 hover:shadow-soft transition-smooth ${
+                    isListening && activeField === 'description' ? 'bg-red-500 text-white hover:bg-red-600' : ''
+                  }`}
+                >
+                  {isListening && activeField === 'description' ? (
+                    <>
+                      <Square className="w-4 h-4 mr-1" />
+                      Stop
+                    </>
+                  ) : (
+                    <>
+                      <Mic className="w-4 h-4 mr-1" />
+                      Voice
+                    </>
+                  )}
+                </Button>
+              )}
+            </div>
             <Textarea
               id="description"
               value={formData.description}
@@ -203,6 +315,9 @@ const ReportIssues = () => {
               className="min-h-[120px] transition-smooth focus:shadow-soft"
               required
             />
+            {isListening && activeField === 'description' && (
+              <p className="text-xs text-blue-600 animate-pulse">🎤 Listening... Speak your description. Click stop when finished</p>
+            )}
           </div>
 
           {/* Location */}
@@ -224,7 +339,32 @@ const ReportIssues = () => {
               >
                 <MapPin className="w-4 h-4" />
               </Button>
+              {speechSupported && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    if (isListening && activeField === 'location') {
+                      stopSpeechRecognition();
+                    } else {
+                      startSpeechRecognition('location');
+                    }
+                  }}
+                  className={`px-3 hover:shadow-soft transition-smooth ${
+                    isListening && activeField === 'location' ? 'bg-red-500 text-white hover:bg-red-600' : ''
+                  }`}
+                >
+                  {isListening && activeField === 'location' ? (
+                    <Square className="w-4 h-4" />
+                  ) : (
+                    <Mic className="w-4 h-4" />
+                  )}
+                </Button>
+              )}
             </div>
+            {isListening && activeField === 'location' && (
+              <p className="text-xs text-blue-600 animate-pulse">🎤 Listening... Speak the location. Click stop when finished</p>
+            )}
           </div>
 
           {/* Image Upload */}
