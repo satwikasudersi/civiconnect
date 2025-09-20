@@ -1,12 +1,16 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
 import { 
   FileText, 
   MessageSquare, 
   BarChart3, 
   Settings, 
   Menu,
-  X 
+  X,
+  LogOut,
+  User
 } from 'lucide-react';
 
 const Header = ({ activeTab, setActiveTab }: { 
@@ -14,6 +18,24 @@ const Header = ({ activeTab, setActiveTab }: {
   setActiveTab: (tab: string) => void; 
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { user, signOut } = useAuth();
+  const { toast } = useToast();
+
+  const handleSignOut = async () => {
+    const { error } = await signOut();
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to sign out. Please try again.",
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Signed Out",
+        description: "You have been successfully signed out.",
+      });
+    }
+  };
 
   const navItems = [
     { id: 'reports', label: 'Report Issues', icon: FileText },
@@ -38,26 +60,47 @@ const Header = ({ activeTab, setActiveTab }: {
           </div>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex space-x-1">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              return (
-                <Button
-                  key={item.id}
-                  variant={activeTab === item.id ? "secondary" : "ghost"}
-                  onClick={() => setActiveTab(item.id)}
-                  className={`flex items-center space-x-2 px-4 py-2 transition-smooth ${
-                    activeTab === item.id 
-                      ? 'bg-primary-foreground/20 text-primary-foreground shadow-soft' 
-                      : 'hover:bg-primary-foreground/10'
-                  }`}
-                >
-                  <Icon className="w-4 h-4" />
-                  <span>{item.label}</span>
-                </Button>
-              );
-            })}
-          </nav>
+          <div className="hidden md:flex items-center space-x-4">
+            <nav className="flex space-x-1">
+              {navItems.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <Button
+                    key={item.id}
+                    variant={activeTab === item.id ? "secondary" : "ghost"}
+                    onClick={() => setActiveTab(item.id)}
+                    className={`flex items-center space-x-2 px-4 py-2 transition-smooth ${
+                      activeTab === item.id 
+                        ? 'bg-primary-foreground/20 text-primary-foreground shadow-soft' 
+                        : 'hover:bg-primary-foreground/10'
+                    }`}
+                  >
+                    <Icon className="w-4 h-4" />
+                    <span>{item.label}</span>
+                  </Button>
+                );
+              })}
+            </nav>
+            
+            {/* User Info and Sign Out */}
+            <div className="flex items-center space-x-3 border-l border-primary-foreground/20 pl-4">
+              <div className="flex items-center space-x-2">
+                <div className="w-8 h-8 bg-primary-foreground/20 rounded-full flex items-center justify-center">
+                  <User className="w-4 h-4" />
+                </div>
+                <span className="text-sm font-medium">{user?.email}</span>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleSignOut}
+                className="hover:bg-primary-foreground/10 flex items-center space-x-1"
+              >
+                <LogOut className="w-4 h-4" />
+                <span>Sign Out</span>
+              </Button>
+            </div>
+          </div>
 
           {/* Mobile menu button */}
           <Button
@@ -99,6 +142,22 @@ const Header = ({ activeTab, setActiveTab }: {
                   </Button>
                 );
               })}
+              
+              {/* Mobile User Info and Sign Out */}
+              <div className="border-t border-primary-foreground/20 pt-2 mt-2">
+                <div className="flex items-center space-x-2 px-4 py-2 text-sm">
+                  <User className="w-4 h-4" />
+                  <span>{user?.email}</span>
+                </div>
+                <Button
+                  variant="ghost"
+                  onClick={handleSignOut}
+                  className="w-full justify-start px-4 py-2 hover:bg-primary-foreground/10"
+                >
+                  <LogOut className="w-4 h-4 mr-2" />
+                  <span>Sign Out</span>
+                </Button>
+              </div>
             </nav>
           </div>
         )}
