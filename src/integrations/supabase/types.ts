@@ -128,12 +128,53 @@ export type Database = {
         }
         Relationships: []
       }
+      suggestions: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          issue_id: string
+          likes: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          issue_id: string
+          likes?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          issue_id?: string
+          likes?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "suggestions_issue_id_fkey"
+            columns: ["issue_id"]
+            isOneToOne: false
+            referencedRelation: "issues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      user_owns_otp: {
+        Args: { otp_email: string; otp_phone: string; otp_user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never

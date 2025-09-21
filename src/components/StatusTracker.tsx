@@ -15,7 +15,7 @@ import {
   HelpCircle,
   Trash
 } from 'lucide-react';
-import { getIssues, Issue, deleteIssue } from '@/lib/issueStorage';
+import { getIssues, Issue, deleteIssue } from '@/lib/supabaseOperations';
 import { useToast } from '@/hooks/use-toast';
 
 const StatusTracker = ({ onViewSuggestions }: { onViewSuggestions: (issue: Issue) => void }) => {
@@ -25,12 +25,14 @@ const StatusTracker = ({ onViewSuggestions }: { onViewSuggestions: (issue: Issue
   const [issues, setIssues] = useState<Issue[]>([]);
 
   useEffect(() => {
-    setIssues(getIssues());
+    const fetchIssues = async () => {
+      const fetchedIssues = await getIssues();
+      setIssues(fetchedIssues);
+    };
+    fetchIssues();
   }, []);
 
   const getCategoryLabel = (issue: Issue) => {
-    if (issue.customCategory) return issue.customCategory;
-    
     const categoryLabels: Record<string, string> = {
       potholes: 'Potholes & Road Issues',
       streetlights: 'Street Lighting',
@@ -46,20 +48,11 @@ const StatusTracker = ({ onViewSuggestions }: { onViewSuggestions: (issue: Issue
     return categoryLabels[issue.category] || issue.category;
   };
 
-  const handleDeleteIssue = (issueId: string) => {
-    const success = deleteIssue(issueId);
+  const handleDeleteIssue = async (issueId: string) => {
+    const success = await deleteIssue(issueId);
     if (success) {
-      setIssues(getIssues());
-      toast({
-        title: "Issue Deleted",
-        description: "The issue has been successfully deleted."
-      });
-    } else {
-      toast({
-        title: "Error",
-        description: "Failed to delete the issue. Please try again.",
-        variant: "destructive"
-      });
+      const fetchedIssues = await getIssues();
+      setIssues(fetchedIssues);
     }
   };
 
@@ -207,37 +200,26 @@ const StatusTracker = ({ onViewSuggestions }: { onViewSuggestions: (issue: Issue
                       <MapPin className="w-4 h-4" />
                       {issue.location}
                     </div>
-                    <div className="flex items-center gap-1">
-                      <Calendar className="w-4 h-4" />
-                      {new Date(issue.date).toLocaleDateString()}
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Eye className="w-4 h-4" />
-                      {issue.images.length} photo{issue.images.length !== 1 ? 's' : ''}
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <HelpCircle className="w-4 h-4" />
-                      {issue.enquiries} enquir{issue.enquiries !== 1 ? 'ies' : 'y'}
-                    </div>
+                     <div className="flex items-center gap-1">
+                       <Calendar className="w-4 h-4" />
+                       {new Date(issue.created_at).toLocaleDateString()}
+                     </div>
+                     <div className="flex items-center gap-1">
+                       <Eye className="w-4 h-4" />
+                       {issue.image_url ? '1 photo' : '0 photos'}
+                     </div>
                   </div>
                 </div>
                 
                 <div className="flex items-center gap-3">
-                  <Button
-                    variant="outline"
-                    onClick={() => onViewSuggestions(issue)}
-                    className="flex items-center gap-2 hover:shadow-soft transition-smooth"
-                  >
-                    <MessageCircle className="w-4 h-4" />
-                    {issue.suggestions} Suggestions
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="flex items-center gap-2 hover:shadow-soft transition-smooth"
-                  >
-                    <HelpCircle className="w-4 h-4" />
-                    {issue.enquiries} Enquiries
-                  </Button>
+                   <Button
+                     variant="outline"
+                     onClick={() => onViewSuggestions(issue)}
+                     className="flex items-center gap-2 hover:shadow-soft transition-smooth"
+                   >
+                     <MessageCircle className="w-4 h-4" />
+                     View Suggestions
+                   </Button>
                   <Button
                     variant="destructive"
                     onClick={() => handleDeleteIssue(issue.id)}

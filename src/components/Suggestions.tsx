@@ -17,35 +17,39 @@ import {
   Lightbulb
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { getSuggestions, saveSuggestion, updateSuggestionLikes, Suggestion as StoredSuggestion } from '@/lib/issueStorage';
+import { getSuggestions, saveSuggestion, updateSuggestionLikes, Suggestion as StoredSuggestion, Issue as DatabaseIssue } from '@/lib/supabaseOperations';
+import { useAuth } from '@/contexts/AuthContext';
 
 type Suggestion = StoredSuggestion;
 
-interface Issue {
-  id: string;
-  title: string;
-  category: string;
-  location: string;
-  date: string;
-  status: 'reported' | 'progress' | 'resolved';
-  description: string;
-  images: string[];
-  suggestions: number;
-  enquiries: number;
-}
+type Issue = DatabaseIssue;
 
 const Suggestions = ({ issue, onBack }: { issue: Issue; onBack: () => void }) => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [newSuggestion, setNewSuggestion] = useState('');
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [likedSuggestions, setLikedSuggestions] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    setSuggestions(getSuggestions(issue.id));
+    const fetchSuggestions = async () => {
+      const fetchedSuggestions = await getSuggestions(issue.id);
+      setSuggestions(fetchedSuggestions);
+    };
+    fetchSuggestions();
   }, [issue.id]);
 
-  const handleSubmitSuggestion = (e: React.FormEvent) => {
+  const handleSubmitSuggestion = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to add suggestions.",
+        variant: "destructive"
+      });
+      return;
+    }
     
     if (!newSuggestion.trim()) {
       toast({
@@ -56,22 +60,18 @@ const Suggestions = ({ issue, onBack }: { issue: Issue; onBack: () => void }) =>
       return;
     }
 
-    const suggestion = saveSuggestion({
+    const suggestion = await saveSuggestion({
       issueId: issue.id,
-      author: 'You',
       content: newSuggestion.trim()
     });
 
-    setSuggestions(prev => [suggestion, ...prev]);
-    setNewSuggestion('');
-    
-    toast({
-      title: "Suggestion Added",
-      description: "Your suggestion has been added to this issue."
-    });
+    if (suggestion) {
+      setSuggestions(prev => [suggestion, ...prev]);
+      setNewSuggestion('');
+    }
   };
 
-  const handleLike = (suggestionId: string) => {
+  const handleLike = async (suggestionId: string) => {
     const isLiked = likedSuggestions.has(suggestionId);
     const currentSuggestion = suggestions.find(s => s.id === suggestionId);
     if (!currentSuggestion) return;
@@ -86,7 +86,7 @@ const Suggestions = ({ issue, onBack }: { issue: Issue; onBack: () => void }) =>
       )
     );
 
-    updateSuggestionLikes(suggestionId, newLikes);
+    await updateSuggestionLikes(suggestionId, newLikes);
 
     setLikedSuggestions(prev => {
       const newSet = new Set(prev);
@@ -138,7 +138,7 @@ const Suggestions = ({ issue, onBack }: { issue: Issue; onBack: () => void }) =>
               </div>
               <div className="flex items-center gap-1">
                 <Calendar className="w-4 h-4" />
-                Reported {new Date(issue.date).toLocaleDateString()}
+                Reported {new Date(issue.created_at).toLocaleDateString()}
               </div>
               <div className="flex items-center gap-1">
                 <MessageSquare className="w-4 h-4" />
@@ -148,19 +148,14 @@ const Suggestions = ({ issue, onBack }: { issue: Issue; onBack: () => void }) =>
           </div>
           
           {/* Issue Images */}
-          {issue.images.length > 0 && (
+          {issue.image_url && (
             <div className="lg:w-80">
-              <h3 className="text-sm font-medium text-muted-foreground mb-3">Issue Photos</h3>
-              <div className="grid grid-cols-2 gap-2">
-                {issue.images.map((image, index) => (
-                  <img
-                    key={index}
-                    src={image}
-                    alt={`Issue photo ${index + 1}`}
-                    className="w-full h-24 object-cover rounded-lg border shadow-soft"
-                  />
-                ))}
-              </div>
+              <h3 className="text-sm font-medium text-muted-foreground mb-3">Issue Photo</h3>
+              <img
+                src={issue.image_url}
+                alt="Issue photo"
+                className="w-full h-48 object-cover rounded-lg border shadow-soft"
+              />
             </div>
           )}
         </div>
@@ -218,16 +213,16 @@ const Suggestions = ({ issue, onBack }: { issue: Issue; onBack: () => void }) =>
             <div className="flex gap-4">
               <Avatar className="w-10 h-10 bg-gradient-primary">
                 <AvatarFallback className="bg-primary text-primary-foreground font-medium">
-                  {suggestion.author.split(' ').map(n => n[0]).join('')}
+                  {suggestion.user_id.slice(0, 2).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
               
               <div className="flex-1">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <span className="font-medium text-foreground">{suggestion.author}</span>
+                    <span className="font-medium text-foreground">User {suggestion.user_id.slice(0, 8)}</span>
                     <span className="text-sm text-muted-foreground">
-                      {new Date(suggestion.date).toLocaleDateString()}
+                      {new Date(suggestion.created_at).toLocaleDateString()}
                     </span>
                   </div>
                 </div>

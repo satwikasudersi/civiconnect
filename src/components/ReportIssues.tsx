@@ -23,11 +23,13 @@ import {
   Square
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { saveIssue } from '@/lib/issueStorage';
+import { saveIssue } from '@/lib/supabaseOperations';
+import { useAuth } from '@/contexts/AuthContext';
 import { useSpeechRecognition } from '@/hooks/useSpeechRecognition';
 
 const ReportIssues = () => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [formData, setFormData] = useState({
     title: '',
     category: '',
@@ -84,8 +86,17 @@ const ReportIssues = () => {
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to report an issue.",
+        variant: "destructive"
+      });
+      return;
+    }
     
     if (!formData.title || !formData.category || !formData.description) {
       toast({
@@ -105,40 +116,34 @@ const ReportIssues = () => {
       return;
     }
 
-    // Convert images to base64 for storage
-    const imagePromises = formData.images.map(file => {
-      return new Promise<string>((resolve) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.readAsDataURL(file);
-      });
-    });
-
-    Promise.all(imagePromises).then(images => {
-      saveIssue({
+    try {
+      const result = await saveIssue({
         title: formData.title,
-        category: formData.category,
-        customCategory: formData.category === 'other' ? formData.customCategory : undefined,
+        category: formData.category === 'other' ? formData.customCategory : formData.category,
         description: formData.description,
         location: formData.location,
-        images
+        images: formData.images
       });
 
+      if (result) {
+        // Reset form
+        setFormData({
+          title: '',
+          category: '',
+          customCategory: '',
+          description: '',
+          location: '',
+          images: []
+        });
+      }
+    } catch (error) {
+      console.error('Error submitting issue:', error);
       toast({
-        title: "Report Submitted",
-        description: "Your issue has been reported successfully. You'll receive updates on its progress.",
+        title: "Error",
+        description: "Failed to submit issue. Please try again.",
+        variant: "destructive"
       });
-
-      // Reset form
-      setFormData({
-        title: '',
-        category: '',
-        customCategory: '',
-        description: '',
-        location: '',
-        images: []
-      });
-    });
+    }
   };
 
   const startSpeechRecognition = (field: 'title' | 'description' | 'location') => {
