@@ -160,15 +160,46 @@ export default function EnhancedAIChatbot() {
 
     } catch (error) {
       console.error('Error sending message:', error);
-      toast({
-        title: "Error",
-        description: "Failed to send message. Please try again.",
-        variant: "destructive",
-      });
+      
+      // Enhanced fallback response based on user input
+      let fallbackResponse = 'I apologize, but I am currently experiencing technical difficulties. Here are some quick answers:';
+      
+      const lowerInput = currentInput.toLowerCase();
+      if (lowerInput.includes('submit') || lowerInput.includes('report') || lowerInput.includes('complaint')) {
+        fallbackResponse = `📝 **How to Submit a Complaint:**
+
+1. Click on "Report Issues" in the main dashboard
+2. Select your issue category (🚧 Roads, 💧 Water, 🗑️ Waste, ⚡ Electricity)
+3. Provide detailed description and location
+4. Upload photos if available
+5. Submit and get your tracking ID
+
+I'll be back online soon to provide more personalized help! 😊`;
+      } else if (lowerInput.includes('track') || lowerInput.includes('status')) {
+        fallbackResponse = `📊 **Track Your Complaint:**
+
+1. Go to "My Reports" section
+2. Use your tracking ID to check status
+3. Status flow: Pending → In Progress → Resolved
+4. Get SMS/email notifications for updates
+
+Currently offline, but tracking system is always available! 🔍`;
+      } else if (lowerInput.includes('category') || lowerInput.includes('type')) {
+        fallbackResponse = `🏢 **Issue Categories:**
+
+• 🚧 Roads & Infrastructure
+• 💧 Water Supply Issues  
+• 🗑️ Waste Management
+• ⚡ Electricity & Streetlights
+• 🚰 Drainage Problems
+• 💰 Corruption Cases
+
+Each gets routed to the right authority automatically! ⚡`;
+      }
 
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
-        content: 'I apologize, but I am currently experiencing technical difficulties. Please try again in a moment.',
+        content: fallbackResponse,
         sender: 'ai',
         timestamp: new Date()
       };

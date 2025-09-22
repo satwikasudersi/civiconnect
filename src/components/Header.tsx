@@ -1,5 +1,7 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Input } from '@/components/ui/input';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { 
@@ -11,7 +13,8 @@ import {
   X,
   LogOut,
   User,
-  Shield
+  Shield,
+  Camera
 } from 'lucide-react';
 
 const Header = ({ activeTab, setActiveTab }: { 
@@ -19,8 +22,18 @@ const Header = ({ activeTab, setActiveTab }: {
   setActiveTab: (tab: string) => void; 
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState<string>('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { user, signOut } = useAuth();
   const { toast } = useToast();
+
+  // Load avatar from localStorage on mount
+  useEffect(() => {
+    const savedAvatar = localStorage.getItem('userAvatar');
+    if (savedAvatar) {
+      setAvatarUrl(savedAvatar);
+    }
+  }, []);
 
   const handleSignOut = async () => {
     const { error } = await signOut();
@@ -36,6 +49,43 @@ const Header = ({ activeTab, setActiveTab }: {
         description: "You have been successfully signed out.",
       });
     }
+  };
+
+  const handleAvatarUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+        toast({
+          title: "File too large",
+          description: "Please select an image smaller than 5MB",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const result = e.target?.result as string;
+        setAvatarUrl(result);
+        localStorage.setItem('userAvatar', result);
+        toast({
+          title: "Profile photo updated! 📸",
+          description: "Your profile picture has been updated successfully",
+        });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const getUserDisplayName = () => {
+    if (user?.user_metadata?.full_name) return user.user_metadata.full_name;
+    if (user?.email) return user.email.split('@')[0];
+    return 'User';
+  };
+
+  const getUserInitials = () => {
+    const name = getUserDisplayName();
+    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
   };
 
   const navItems = [
@@ -95,11 +145,19 @@ const Header = ({ activeTab, setActiveTab }: {
             {/* User Info and Sign Out */}
             <div className="flex items-center space-x-4 border-l border-border/50 pl-6">
               <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-gradient-primary rounded-full flex items-center justify-center shadow-soft animate-float">
-                  <User className="w-5 h-5 text-white" />
+                <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
+                  <Avatar className="w-10 h-10 ring-2 ring-primary/20 hover:ring-primary/40 transition-all shadow-soft">
+                    <AvatarImage src={avatarUrl} alt={getUserDisplayName()} />
+                    <AvatarFallback className="bg-gradient-primary text-white font-semibold">
+                      {getUserInitials()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="absolute inset-0 bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <Camera className="h-4 w-4 text-white" />
+                  </div>
                 </div>
                 <div className="hidden lg:block">
-                  <p className="text-sm font-medium text-foreground">{user?.email?.slice(0, 20)}</p>
+                  <p className="text-sm font-medium text-foreground">{getUserDisplayName()}</p>
                   <p className="text-xs text-muted-foreground">Active User</p>
                 </div>
               </div>
@@ -113,6 +171,14 @@ const Header = ({ activeTab, setActiveTab }: {
                 Sign Out
               </Button>
             </div>
+            
+            <Input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleAvatarUpload}
+              className="hidden"
+            />
           </div>
 
           {/* Mobile menu button */}
@@ -158,9 +224,19 @@ const Header = ({ activeTab, setActiveTab }: {
               
               {/* Mobile User Info and Sign Out */}
               <div className="border-t border-primary-foreground/20 pt-2 mt-2">
-                <div className="flex items-center space-x-2 px-4 py-2 text-sm">
-                  <User className="w-4 h-4" />
-                  <span>{user?.email}</span>
+                <div className="flex items-center space-x-3 px-4 py-2">
+                  <div className="relative" onClick={() => fileInputRef.current?.click()}>
+                    <Avatar className="w-8 h-8 cursor-pointer">
+                      <AvatarImage src={avatarUrl} alt={getUserDisplayName()} />
+                      <AvatarFallback className="bg-gradient-primary text-white text-xs font-semibold">
+                        {getUserInitials()}
+                      </AvatarFallback>
+                    </Avatar>
+                  </div>
+                  <div className="text-sm">
+                    <div className="font-medium">{getUserDisplayName()}</div>
+                    <div className="text-muted-foreground text-xs">{user?.email}</div>
+                  </div>
                 </div>
                 <Button
                   variant="ghost"

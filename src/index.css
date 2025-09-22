@@ -1,6 +1,7 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+@import url('https://fonts.googleapis.com/css2?family=Noto+Color+Emoji&display=swap');
 
 /* Modern Civic Reporting Platform Design System */
 
@@ -102,7 +103,7 @@
 
   body {
     @apply bg-background text-foreground;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif, "Noto Color Emoji";
   }
 
   html {
@@ -111,6 +112,11 @@
 }
 
 @layer utilities {
+  /* Emoji support utilities */
+  .emoji-support {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif, "Noto Color Emoji";
+  }
+
   /* Enhanced glassmorphism utilities */
   .glass {
     background: var(--glass-bg);
