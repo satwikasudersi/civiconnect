@@ -48,59 +48,69 @@ const Header = ({ activeTab, setActiveTab }: {
   ];
 
   return (
-    <header className="bg-gradient-primary text-primary-foreground shadow-glow sticky top-0 z-50">
+    <header className="glass bg-gradient-primary/10 backdrop-blur-md text-foreground shadow-glass sticky top-0 z-50 border-b border-glass-border">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center py-4">
           {/* Logo */}
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-primary-foreground/20 rounded-lg flex items-center justify-center">
-              <FileText className="w-6 h-6" />
+          <div className="flex items-center space-x-3 group">
+            <div className="w-12 h-12 bg-gradient-primary rounded-xl flex items-center justify-center shadow-glow transform transition-transform group-hover:scale-110 animate-glow">
+              <Shield className="w-7 h-7 text-white" />
             </div>
             <div>
-              <h1 className="text-xl font-bold">CivicConnect</h1>
-              <p className="text-sm opacity-90">Community Issue Reporting</p>
+              <h1 className="text-2xl font-bold gradient-text">CivicConnect</h1>
+              <p className="text-sm text-muted-foreground">Smart Community Reporting</p>
             </div>
           </div>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-4">
-            <nav className="flex space-x-1">
+          <div className="hidden md:flex items-center space-x-6">
+            <nav className="flex space-x-2">
               {navItems.map((item) => {
                 const Icon = item.icon;
+                const isActive = activeTab === item.id;
                 return (
                   <Button
                     key={item.id}
-                    variant={activeTab === item.id ? "secondary" : "ghost"}
+                    variant="ghost"
                     onClick={() => setActiveTab(item.id)}
-                    className={`flex items-center space-x-2 px-4 py-2 transition-smooth ${
-                      activeTab === item.id 
-                        ? 'bg-primary-foreground/20 text-primary-foreground shadow-soft' 
-                        : 'hover:bg-primary-foreground/10'
-                    }`}
+                    className={`
+                      flex items-center space-x-2 px-4 py-2.5 rounded-xl font-medium
+                      transition-all duration-300 ease-smooth relative overflow-hidden
+                      ${isActive 
+                        ? 'bg-gradient-primary text-white shadow-glow' 
+                        : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
+                      }
+                    `}
                   >
-                    <Icon className="w-4 h-4" />
+                    <Icon className={`w-4 h-4 ${isActive ? 'animate-glow' : ''}`} />
                     <span>{item.label}</span>
+                    {isActive && (
+                      <div className="absolute inset-0 bg-gradient-primary opacity-20 animate-shimmer" />
+                    )}
                   </Button>
                 );
               })}
             </nav>
             
             {/* User Info and Sign Out */}
-            <div className="flex items-center space-x-3 border-l border-primary-foreground/20 pl-4">
-              <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-primary-foreground/20 rounded-full flex items-center justify-center">
-                  <User className="w-4 h-4" />
+            <div className="flex items-center space-x-4 border-l border-border/50 pl-6">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-gradient-primary rounded-full flex items-center justify-center shadow-soft animate-float">
+                  <User className="w-5 h-5 text-white" />
                 </div>
-                <span className="text-sm font-medium">{user?.email}</span>
+                <div className="hidden lg:block">
+                  <p className="text-sm font-medium text-foreground">{user?.email?.slice(0, 20)}</p>
+                  <p className="text-xs text-muted-foreground">Active User</p>
+                </div>
               </div>
               <Button
-                variant="ghost"
+                variant="outline"
                 size="sm"
                 onClick={handleSignOut}
-                className="hover:bg-primary-foreground/10 flex items-center space-x-1"
+                className="btn-modern text-white border-primary/30 hover:border-primary hover:shadow-glow"
               >
-                <LogOut className="w-4 h-4" />
-                <span>Sign Out</span>
+                <LogOut className="w-4 h-4 mr-2" />
+                Sign Out
               </Button>
             </div>
           </div>

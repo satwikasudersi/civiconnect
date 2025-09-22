@@ -8,7 +8,7 @@ import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { Eye, EyeOff, ArrowLeft } from 'lucide-react';
+import { Eye, EyeOff, ArrowLeft, Shield } from 'lucide-react';
 
 const EMOJI_OPTIONS = ['👤', '😊', '🌟', '🎨', '🚀', '💼', '🎯', '🌈', '🔥', '💡', '🎭', '🎪'];
 
@@ -283,57 +283,72 @@ export default function Auth() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-hero flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold text-primary">
-            {isResetMode ? 'Reset Password' : isLogin ? 'Welcome Back' : 'Create Account'}
+    <div className="min-h-screen bg-gradient-mesh flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Animated background elements */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute -top-1/2 -left-1/2 w-full h-full bg-gradient-primary/10 rounded-full animate-float" />
+        <div className="absolute -bottom-1/2 -right-1/2 w-full h-full bg-gradient-primary/5 rounded-full animate-float" style={{ animationDelay: '1s' }} />
+      </div>
+      
+      <Card className="w-full max-w-md glass shadow-elegant border-primary/30 animate-fade-in relative z-10">
+        <CardHeader className="text-center space-y-4 pb-8">
+          <div className="mx-auto w-16 h-16 bg-gradient-primary rounded-2xl flex items-center justify-center shadow-glow animate-glow">
+            <Shield className="w-8 h-8 text-white" />
+          </div>
+          <CardTitle className="text-3xl font-bold gradient-text">
+            {isResetMode ? 'Reset Password' : isLogin ? 'Welcome Back' : 'Join CivicConnect'}
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-lg text-muted-foreground">
             {isResetMode 
               ? 'Enter your email to reset your password'
               : isLogin 
-                ? 'Sign in to your account' 
-                : 'Join our community today'
+                ? 'Sign in to continue your civic journey' 
+                : 'Start making a difference in your community'
             }
           </CardDescription>
         </CardHeader>
         
-        <CardContent>
-          <form onSubmit={isResetMode ? handleForgotPassword : handleAuth} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email Address</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="Enter your email address"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
+        <CardContent className="space-y-6">
+          <form onSubmit={isResetMode ? handleForgotPassword : handleAuth} className="space-y-6">
+            <div className="space-y-3">
+              <Label htmlFor="email" className="text-sm font-semibold text-foreground">Email Address</Label>
+              <div className="relative group">
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="Enter your email address"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="h-12 px-4 bg-secondary/50 border-primary/30 rounded-xl text-lg focus:border-primary focus:shadow-glow transition-all duration-300"
+                  required
+                />
+                <div className="absolute inset-0 rounded-xl bg-gradient-primary/5 opacity-0 group-focus-within:opacity-100 transition-opacity duration-300 pointer-events-none" />
+              </div>
             </div>
 
             {!isResetMode && (
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <div className="relative">
+              <div className="space-y-3">
+                <Label htmlFor="password" className="text-sm font-semibold text-foreground">Password</Label>
+                <div className="relative group">
                   <Input
                     id="password"
                     type={showPassword ? "text" : "password"}
-                    placeholder="Enter password"
+                    placeholder="Enter your password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
+                    className="h-12 px-4 pr-12 bg-secondary/50 border-primary/30 rounded-xl text-lg focus:border-primary focus:shadow-glow transition-all duration-300"
                     required
                   />
                   <Button
                     type="button"
                     variant="ghost"
                     size="sm"
-                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                    className="absolute right-2 top-1/2 transform -translate-y-1/2 w-8 h-8 p-0 hover:bg-primary/10 rounded-lg transition-colors"
                     onClick={() => setShowPassword(!showPassword)}
                   >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    {showPassword ? <EyeOff className="h-4 w-4 text-primary" /> : <Eye className="h-4 w-4 text-primary" />}
                   </Button>
+                  <div className="absolute inset-0 rounded-xl bg-gradient-primary/5 opacity-0 group-focus-within:opacity-100 transition-opacity duration-300 pointer-events-none" />
                 </div>
               </div>
             )}
@@ -397,18 +412,27 @@ export default function Auth() {
               </>
             )}
 
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Please wait...' : 
+            <Button 
+              type="submit" 
+              className="w-full h-12 btn-modern text-lg font-semibold rounded-xl shadow-glow hover:shadow-hover transition-all duration-300" 
+              disabled={loading}
+            >
+              {loading ? (
+                <div className="flex items-center gap-2">
+                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  Please wait...
+                </div>
+              ) : (
                 isResetMode ? 'Send Reset Link' :
-                isLogin ? 'Sign In' : 'Create Account'
-              }
+                isLogin ? 'Sign In to CivicConnect' : 'Create Your Account'
+              )}
             </Button>
 
             {isLogin && !isResetMode && (
               <Button
                 type="button"
-                variant="ghost"
-                className="w-full"
+                variant="outline"
+                className="w-full h-11 border-primary/30 text-primary hover:bg-primary/5 hover:border-primary rounded-xl transition-all duration-300"
                 onClick={() => setIsResetMode(true)}
               >
                 Forgot your password?
@@ -418,17 +442,18 @@ export default function Auth() {
 
           {!isResetMode && (
             <>
-              <div className="relative my-6">
-                <Separator />
+              <div className="relative my-8">
+                <Separator className="bg-border/50" />
                 <div className="absolute inset-0 flex justify-center">
-                  <span className="bg-card px-2 text-muted-foreground text-sm">or</span>
+                  <span className="bg-card px-4 text-muted-foreground font-medium">or</span>
                 </div>
               </div>
 
               <div className="text-center">
                 <Button
                   type="button"
-                  variant="ghost"
+                  variant="outline"
+                  className="w-full h-11 border-primary/30 text-primary hover:bg-primary/5 hover:border-primary rounded-xl transition-all duration-300 font-medium"
                   onClick={() => {
                     setIsLogin(!isLogin);
                     setPassword('');
@@ -438,7 +463,7 @@ export default function Auth() {
                     setSelectedEmoji('👤');
                   }}
                 >
-                  {isLogin ? "Don't have an account? Sign up" : "Already have an account? Sign in"}
+                  {isLogin ? "Don't have an account? Join now" : "Already have an account? Sign in"}
                 </Button>
               </div>
             </>
