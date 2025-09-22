@@ -172,6 +172,35 @@ const Analytics = () => {
   const resolutionRate = data.totalComplaints > 0 ? Math.round((data.resolvedComplaints / data.totalComplaints) * 100) : 0;
   const avgResolutionTime = '5.2 days';
 
+  // Mock data for missing sections
+  const topLocations = [
+    { location: 'Downtown Area', issues: 24 },
+    { location: 'Residential Zone A', issues: 18 },
+    { location: 'Industrial District', issues: 15 },
+    { location: 'Commercial Center', issues: 12 },
+    { location: 'Suburban Area', issues: 9 }
+  ];
+
+  const recentActivity = [
+    { type: 'report', action: 'New issue reported', item: 'Broken streetlight on Main St', time: '2 hours ago' },
+    { type: 'resolve', action: 'Issue resolved', item: 'Pothole repair completed', time: '4 hours ago' },
+    { type: 'progress', action: 'Status updated', item: 'Drainage system maintenance', time: '6 hours ago' },
+    { type: 'report', action: 'New issue reported', item: 'Traffic signal malfunction', time: '8 hours ago' }
+  ];
+
+  const getActivityIcon = (type: string) => {
+    switch (type) {
+      case 'report':
+        return <AlertTriangle className="w-4 h-4 text-warning" />;
+      case 'resolve':
+        return <CheckCircle2 className="w-4 h-4 text-success" />;
+      case 'progress':
+        return <Clock className="w-4 h-4 text-primary" />;
+      default:
+        return <Clock className="w-4 h-4 text-muted-foreground" />;
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-surface p-6 space-y-8">
       <motion.div
@@ -189,7 +218,7 @@ const Analytics = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-muted-foreground">Total Issues</p>
-              <p className="text-2xl font-bold text-foreground">{totalIssues}</p>
+              <p className="text-2xl font-bold text-foreground">{data.totalComplaints}</p>
               <p className="text-sm text-green-600 flex items-center gap-1 mt-1">
                 <TrendingUp className="w-3 h-3" />
                 +12% this month
@@ -258,16 +287,19 @@ const Analytics = () => {
             Issues by Category
           </h3>
           <div className="space-y-4">
-            {categoryData.map((category, index) => (
+            {data.categoryData.map((category, index) => (
               <div key={index} className="space-y-2">
                 <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium text-foreground">{category.name}</span>
+                  <span className="text-sm font-medium text-foreground">{category.category}</span>
                   <span className="text-sm text-muted-foreground">{category.count}</span>
                 </div>
                 <div className="w-full bg-muted rounded-full h-2">
                   <div 
                     className="bg-gradient-primary h-2 rounded-full transition-all duration-500"
-                    style={{ width: `${category.percentage}%` }}
+                    style={{ 
+                      width: `${data.totalComplaints > 0 ? (category.count / data.totalComplaints) * 100 : 0}%`,
+                      backgroundColor: category.color
+                    }}
                   />
                 </div>
               </div>
