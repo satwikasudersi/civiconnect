@@ -10,7 +10,8 @@ import {
   Menu,
   X,
   LogOut,
-  User
+  User,
+  Shield
 } from 'lucide-react';
 
 const Header = ({ activeTab, setActiveTab }: { 
@@ -41,6 +42,7 @@ const Header = ({ activeTab, setActiveTab }: {
     { id: 'reports', label: 'Report Issues', icon: FileText },
     { id: 'status', label: 'Status Tracker', icon: BarChart3 },
     { id: 'myreports', label: 'My Reports', icon: User },
+    { id: 'blockchain', label: 'Blockchain', icon: Shield },
     { id: 'suggestions', label: 'Suggestions', icon: MessageSquare },
     { id: 'analytics', label: 'Analytics', icon: Settings }
   ];

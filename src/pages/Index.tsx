@@ -7,6 +7,8 @@ import StatusTracker from '@/components/StatusTracker';
 import Suggestions from '@/components/Suggestions';
 import Analytics from '@/components/Analytics';
 import MyReports from '@/components/MyReports';
+import AIChatbot from '@/components/AIChatbot';
+import BlockchainReports from '@/components/BlockchainReports';
 import civicHero from '@/assets/civic-hero.jpg';
 const Index = () => {
   const [activeTab, setActiveTab] = useState('reports');
@@ -54,6 +56,8 @@ const Index = () => {
         return <StatusTracker onViewSuggestions={handleViewSuggestions} />;
       case 'myreports':
         return <MyReports />;
+      case 'blockchain':
+        return <BlockchainReports />;
       case 'analytics':
         return <Analytics />;
       default:
@@ -99,6 +103,9 @@ const Index = () => {
           
         </div>
       </footer>
+
+      {/* AI Chatbot */}
+      <AIChatbot />
     </div>;
 };
 export default Index;

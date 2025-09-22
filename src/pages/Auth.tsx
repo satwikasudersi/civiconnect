@@ -67,22 +67,17 @@ export default function Auth() {
     return re.test(email);
   };
 
-  const validatePhone = (phone: string) => {
-    const re = /^\+?[\d\s-()]+$/;
-    return phone.length >= 10 && re.test(phone);
-  };
-
-  const isEmailOrPhone = (input: string) => {
-    return validateEmail(input) || validatePhone(input);
+  const isEmailInput = (input: string) => {
+    return validateEmail(input);
   };
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!isEmailOrPhone(email)) {
+    if (!isEmailInput(email)) {
       toast({
         title: "Invalid Input",
-        description: "Please enter a valid email or phone number",
+        description: "Please enter a valid email address",
         variant: "destructive",
       });
       return;
@@ -307,11 +302,11 @@ export default function Auth() {
         <CardContent>
           <form onSubmit={isResetMode ? handleForgotPassword : handleAuth} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email or Phone Number</Label>
+              <Label htmlFor="email">Email Address</Label>
               <Input
                 id="email"
-                type="text"
-                placeholder="Enter email or phone number"
+                type="email"
+                placeholder="Enter your email address"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required

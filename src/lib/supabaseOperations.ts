@@ -135,6 +135,18 @@ export const getIssues = async (): Promise<Issue[]> => {
 
 export const deleteIssue = async (issueId: string): Promise<boolean> => {
   try {
+    // First delete all suggestions related to this issue
+    const { error: suggestionError } = await supabase
+      .from('suggestions')
+      .delete()
+      .eq('issue_id', issueId);
+    
+    if (suggestionError) {
+      console.error('Error deleting suggestions:', suggestionError);
+      // Continue with issue deletion even if suggestion deletion fails
+    }
+    
+    // Then delete the issue itself
     const { error } = await supabase
       .from('issues')
       .delete()
@@ -152,7 +164,7 @@ export const deleteIssue = async (issueId: string): Promise<boolean> => {
 
     toast({
       title: "Issue deleted",
-      description: "The issue has been removed.",
+      description: "The issue and all related suggestions have been removed.",
     });
 
     return true;
