@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAIComplaintAssistant } from '@/hooks/useAIComplaintAssistant';
 import { useSpeechRecognition } from '@/hooks/useSpeechRecognition';
+import { SmartChatInterface } from './SmartChatInterface';
 
 interface Message {
   id: string;
@@ -46,6 +47,12 @@ export default function EnhancedAIChatbot() {
   const [isVoiceMode, setIsVoiceMode] = useState(false);
   const [stepByStepMode, setStepByStepMode] = useState(false);
   const [stepByStepData, setStepByStepData] = useState<StepByStepData>({});
+  const [userStats, setUserStats] = useState({
+    totalIssues: 0,
+    pendingIssues: 0,
+    resolvedIssues: 0,
+    mostCommonCategory: undefined as string | undefined
+  });
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
@@ -71,6 +78,47 @@ export default function EnhancedAIChatbot() {
       setInputMessage(transcript);
     }
   }, [transcript, isVoiceMode]);
+
+  // Load user stats on component mount
+  useEffect(() => {
+    const loadUserStats = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data: issues } = await supabase
+            .from('issues')
+            .select('*')
+            .eq('user_id', user.id);
+
+          if (issues) {
+            const pendingCount = issues.filter(i => i.status === 'reported').length;
+            const resolvedCount = issues.filter(i => i.status === 'resolved').length;
+            
+            // Find most common category
+            const categoryCount = issues.reduce((acc: any, issue: any) => {
+              acc[issue.category] = (acc[issue.category] || 0) + 1;
+              return acc;
+            }, {});
+            
+            const mostCommon = Object.keys(categoryCount).reduce((a, b) => 
+              categoryCount[a] > categoryCount[b] ? a : b, Object.keys(categoryCount)[0]
+            );
+
+            setUserStats({
+              totalIssues: issues.length,
+              pendingIssues: pendingCount,
+              resolvedIssues: resolvedCount,
+              mostCommonCategory: mostCommon
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Error loading user stats:', error);
+      }
+    };
+
+    loadUserStats();
+  }, []);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -163,40 +211,91 @@ export default function EnhancedAIChatbot() {
     } catch (error) {
       console.error('Error sending message:', error);
       
-      // Enhanced fallback response based on user input
-      let fallbackResponse = 'I apologize, but I am currently experiencing technical difficulties. Here are some quick answers:';
+      // Smart fallback responses based on user input and context
+      let fallbackResponse = "I'm temporarily offline, but I can still help with these common queries:";
       
       const lowerInput = currentInput.toLowerCase();
-      if (lowerInput.includes('submit') || lowerInput.includes('report') || lowerInput.includes('complaint')) {
-        fallbackResponse = `📝 **How to Submit a Complaint:**
+      
+      if (lowerInput.includes('status') || lowerInput.includes('track') || lowerInput.includes('my complaint')) {
+        fallbackResponse = `📊 **Status Tracker Location:**
 
-1. Click on "Report Issues" in the main dashboard
-2. Select your issue category (🚧 Roads, 💧 Water, 🗑️ Waste, ⚡ Electricity)
-3. Provide detailed description and location
-4. Upload photos if available
-5. Submit and get your tracking ID
+**🔍 Find Your Status:** Go to "My Reports" in the main dashboard - that's where the Status Tracker lives!
 
-I'll be back online soon to provide more personalized help! 😊`;
-      } else if (lowerInput.includes('track') || lowerInput.includes('status')) {
-        fallbackResponse = `📊 **Track Your Complaint:**
+**Status Meanings:**
+• 🔴 Pending → Just submitted, being reviewed
+• 🟡 In Progress → Authority is working on it
+• 🟢 Resolved → Issue fixed!
 
-1. Go to "My Reports" section
-2. Use your tracking ID to check status
-3. Status flow: Pending → In Progress → Resolved
-4. Get SMS/email notifications for updates
+**📱 Notifications:** You'll get SMS/email updates automatically when status changes.
 
-Currently offline, but tracking system is always available! 🔍`;
-      } else if (lowerInput.includes('category') || lowerInput.includes('type')) {
-        fallbackResponse = `🏢 **Issue Categories:**
+I'll be back online soon for personalized status updates! 📍`;
+        
+      } else if (lowerInput.includes('upload') || lowerInput.includes('image') || lowerInput.includes('photo')) {
+        fallbackResponse = `📸 **Image Upload Feature:**
 
-• 🚧 Roads & Infrastructure
-• 💧 Water Supply Issues  
-• 🗑️ Waste Management
-• ⚡ Electricity & Streetlights
-• 🚰 Drainage Problems
-• 💰 Corruption Cases
+**✅ Yes, you can upload images!** When submitting complaints:
+• Click "Choose Files" in the complaint form
+• Supports JPG, PNG (up to 5MB each)
+• Upload up to 3 images per complaint
+• Clear photos help authorities resolve issues faster
 
-Each gets routed to the right authority automatically! ⚡`;
+**💡 Pro Tip:** Take photos from multiple angles - close-ups and wide shots work best!
+
+Currently offline, but the upload feature is always available in the complaint form! 📎`;
+        
+      } else if (lowerInput.includes('voice') || lowerInput.includes('speak') || lowerInput.includes('microphone')) {
+        fallbackResponse = `🎤 **Voice-to-Text Feature:**
+
+**🗣️ Yes, you can speak your complaints!** Look for the microphone icon (🎤):
+• Available in complaint forms and this chat
+• Supports Telugu, Hindi, and English
+• Just click the mic and start speaking
+• Text appears automatically when you stop
+
+**♿ Accessibility:** Perfect for users who prefer speaking over typing!
+
+The voice feature is always available - try clicking the microphone icon! 🎯`;
+        
+      } else if (lowerInput.includes('anonymous') || lowerInput.includes('private') || lowerInput.includes('confidential')) {
+        fallbackResponse = `🔒 **Anonymous Reporting:**
+
+**🛡️ Yes, you can file anonymous complaints!** 
+• Check "Anonymous" option during submission
+• Your identity stays completely private
+• Especially important for corruption cases
+• You still get a tracking ID via email
+
+**Privacy Protection:** All data is encrypted and secure. Your safety comes first!
+
+Anonymous mode is always available in the complaint form - look for the checkbox! 🔐`;
+        
+      } else if (lowerInput.includes('category') || lowerInput.includes('type') || lowerInput.includes('report')) {
+        fallbackResponse = `🏢 **Smart Complaint Categories:**
+
+**🎯 AI Auto-Categorization Available:**
+• 🚧 Roads & Infrastructure → GHMC
+• 💧 Water Supply → Water Board  
+• 🗑️ Waste Management → Sanitation
+• ⚡ Electricity → Power Board
+• 🚰 Drainage → Engineering Dept
+• 💰 Corruption → Anti-Corruption Bureau
+
+**✨ AI Feature:** System suggests the best category based on your description!
+
+Try the "Report Issues" button - AI will help categorize automatically! 🤖`;
+        
+      } else if (lowerInput.includes('where') || lowerInput.includes('find') || lowerInput.includes('location')) {
+        fallbackResponse = `📍 **Navigation Help:**
+
+**🔍 Status Tracker:** Main Dashboard → "My Reports" section
+**📝 Report Issues:** Main Dashboard → "Report Issues" button
+**⚙️ Settings:** Top navigation → Settings icon
+**📱 Notifications:** Settings → Notification preferences
+**💬 Help:** This chatbot is always available!
+
+**🏠 Dashboard Layout:** Everything you need is accessible from the main dashboard homepage.
+
+Bookmark the "My Reports" page for quick status checking! 🎯`;
       }
 
       const errorMessage: Message = {
@@ -225,12 +324,12 @@ Each gets routed to the right authority automatically! ⚡`;
     
     const guidanceMessage: Message = {
       id: Date.now().toString(),
-      content: 'Great! I\'ll guide you through reporting your complaint step by step. Let\'s start - what type of issue would you like to report?',
+      content: "Perfect! I'll help you report your complaint with our smart reporting system. I'll suggest the best category and priority based on your description.\n\n🎯 **AI Features Available:**\n• Smart categorization suggestions\n• 📸 Image upload support\n• 🎤 Voice-to-text option\n• 🔒 Anonymous reporting if needed\n\nWhat type of issue would you like to report?",
       sender: 'ai',
       timestamp: new Date(),
       type: 'guidance',
       metadata: { 
-        actions: ['Municipal issue (roads, water, waste)', 'Political corruption case', 'Not sure - describe the problem'] 
+        actions: ['🚧 Road/Infrastructure issue', '💧 Water supply problem', '🗑️ Waste management issue', '⚡ Electricity problem', '💰 Corruption case', '❓ Not sure - describe the problem'] 
       }
     };
     

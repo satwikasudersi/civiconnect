@@ -11,16 +11,15 @@ const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
-// Helper function to get user's complaint data
+// Enhanced helper function to get comprehensive user data
 const getUserComplaintData = async (supabase: any, userId: string) => {
   try {
-    // Get user's issues
+    // Get user's issues with detailed analysis
     const { data: issues, error: issuesError } = await supabase
       .from('issues')
       .select('*')
       .eq('user_id', userId)
-      .order('created_at', { ascending: false })
-      .limit(10);
+      .order('created_at', { ascending: false });
 
     if (issuesError) {
       console.error('Error fetching user issues:', issuesError);
@@ -32,16 +31,39 @@ const getUserComplaintData = async (supabase: any, userId: string) => {
       .from('suggestions')
       .select('*')
       .eq('user_id', userId)
-      .order('created_at', { ascending: false })
-      .limit(5);
+      .order('created_at', { ascending: false });
+
+    // Analyze complaint patterns and statistics
+    const pendingIssues = issues?.filter(i => i.status === 'reported') || [];
+    const inProgressIssues = issues?.filter(i => i.status === 'in_progress') || [];
+    const resolvedIssues = issues?.filter(i => i.status === 'resolved') || [];
+    
+    // Category breakdown
+    const categoryStats = issues?.reduce((acc: any, issue: any) => {
+      acc[issue.category] = (acc[issue.category] || 0) + 1;
+      return acc;
+    }, {}) || {};
+
+    // Priority breakdown
+    const priorityStats = issues?.reduce((acc: any, issue: any) => {
+      acc[issue.priority] = (acc[issue.priority] || 0) + 1;
+      return acc;
+    }, {}) || {};
 
     return {
       issues: issues || [],
       suggestions: suggestions || [],
       totalIssues: issues?.length || 0,
       recentIssue: issues?.[0] || null,
-      pendingIssues: issues?.filter(i => i.status === 'reported').length || 0,
-      resolvedIssues: issues?.filter(i => i.status === 'resolved').length || 0
+      pendingIssues: pendingIssues.length,
+      inProgressIssues: inProgressIssues.length,
+      resolvedIssues: resolvedIssues.length,
+      categoryStats,
+      priorityStats,
+      pendingList: pendingIssues.slice(0, 3),
+      resolvedList: resolvedIssues.slice(0, 3),
+      hasImages: issues?.some(i => i.image_url) || false,
+      avgResponseTime: resolvedIssues.length > 0 ? '3-5 days' : 'No data yet'
     };
   } catch (error) {
     console.error('Error in getUserComplaintData:', error);
@@ -49,76 +71,332 @@ const getUserComplaintData = async (supabase: any, userId: string) => {
   }
 };
 
-// Enhanced context-aware response function
+// Feature-aware FAQ knowledge base
+const getFeatureAwareFAQ = (message: string, userData: any = null): string | null => {
+  const lowerMessage = message.toLowerCase();
+  
+  // Website feature-specific questions
+  const featureQuestions = [
+    {
+      keywords: ['status tracker', 'where find status', 'track location', 'dashboard', 'find tracker'],
+      response: `📍 **Finding the Status Tracker:**
+
+The Status Tracker is located in your **main dashboard** under the "My Reports" section. Here's exactly how to find it:
+
+1. 🏠 Go to the main dashboard (home page)
+2. 📊 Look for "My Reports" in the navigation menu
+3. 🔍 Click on "My Reports" to see all your complaints
+4. 📈 Each complaint shows its current status with color coding
+
+**Status Colors:**
+• 🔴 Red = Pending (just submitted)
+• 🟡 Yellow = In Progress (being worked on)
+• 🟢 Green = Resolved (completed)
+
+You can also bookmark the My Reports page for quick access! The URL is available in your browser after clicking the section.`
+    },
+    {
+      keywords: ['upload image', 'attach photo', 'add picture', 'image support', 'photo upload'],
+      response: `📸 **Image Upload Feature:**
+
+Yes! You can **attach images** when submitting complaints to help authorities understand the issue better.
+
+**How to Upload Images:**
+1. 📝 When filling out the complaint form
+2. 📎 Look for the "Upload Images" section
+3. 🖼️ Click "Choose Files" or drag & drop images
+4. ✅ Supports JPG, PNG, and other common formats
+5. 📏 Maximum 5MB per image, up to 3 images per complaint
+
+**Pro Tips:**
+• 📐 Take clear, well-lit photos from multiple angles
+• 🏷️ Include close-ups of the problem area
+• 📍 Wide shots showing location context help too
+• 🚫 Avoid blurry or poorly lit images
+
+Images significantly improve resolution speed - authorities can see exactly what needs fixing! 🎯`
+    },
+    {
+      keywords: ['voice to text', 'voice input', 'speak', 'microphone', 'illiterate', 'audio input'],
+      response: `🎤 **Voice-to-Text Feature:**
+
+Great question! We have **voice input support** to help users who prefer speaking over typing.
+
+**How to Use Voice Input:**
+1. 🗣️ Look for the microphone icon (🎤) in complaint forms and chat
+2. 📱 Click the microphone button to start recording
+3. 🔊 Speak clearly in Telugu, Hindi, or English
+4. ⏹️ Click stop when finished - text appears automatically
+5. ✏️ Review and edit the text if needed before submitting
+
+**Accessibility Features:**
+• 🌐 Supports multiple Indian languages
+• 👂 Works well in noisy environments
+• 🔄 Can re-record if not satisfied
+• 📝 Combines with regular typing if needed
+
+This feature is especially helpful for elderly users or those who prefer speaking. The system is quite accurate with clear speech! 🎯`
+    },
+    {
+      keywords: ['anonymous', 'private complaint', 'hide identity', 'confidential', 'secret reporting'],
+      response: `🔒 **Anonymous Complaint Feature:**
+
+Yes! You can file **completely anonymous complaints** to protect your identity, especially important for corruption cases.
+
+**How Anonymous Reporting Works:**
+1. ✅ Check "File Anonymous Complaint" during submission
+2. 🛡️ Your name and contact details are hidden from public view
+3. 🔐 Only the complaint content and location are visible
+4. 📧 You'll still get a tracking ID via email for follow-up
+
+**Privacy Protection:**
+• 🚫 Your personal details never appear in public records
+• 🏛️ Authorities see only the complaint details they need
+• 📱 Phone number is optional for anonymous reports
+• 🔒 All data is encrypted and secure
+
+**Best for:**
+• 💰 Corruption complaints against officials
+• 🚨 Whistleblowing situations
+• 🏠 Neighborhood disputes where you prefer privacy
+
+Your safety and privacy come first! 🛡️`
+    },
+    {
+      keywords: ['complaint categories', 'issue types', 'what can report', 'report types'],
+      response: `🏢 **Available Complaint Categories:**
+
+Our system handles these main categories, each routed to the right authority:
+
+**🏙️ Municipal Services:**
+• 🚧 **Roads & Infrastructure** → GHMC Road Dept
+• 💧 **Water Supply Issues** → Water Board
+• 🗑️ **Waste Management** → Sanitation Dept  
+• ⚡ **Electricity Problems** → Electricity Board
+• 🚰 **Drainage & Sewage** → Engineering Dept
+
+**💰 Governance & Corruption:**
+• 🤝 **Bribery Cases** → Anti-Corruption Bureau
+• 📄 **Document Delays** → Revenue Department
+• ⚖️ **Misuse of Funds** → Vigilance Department
+
+**🚨 Safety & Security:**
+• 🔒 **Street Safety** → Police Department
+• 🚦 **Traffic Issues** → Traffic Police
+• 🎵 **Noise Pollution** → Pollution Board
+
+Each category automatically goes to the right department - no need to figure out who to contact! 🎯`
+    },
+    {
+      keywords: ['notifications', 'alerts', 'sms updates', 'email updates', 'how get notified'],
+      response: `🔔 **Notification System:**
+
+You'll receive **automatic updates** about your complaints through multiple channels:
+
+**📱 SMS Notifications:**
+• Instant confirmation when complaint is submitted
+• Status change alerts (Pending → In Progress → Resolved)
+• Authority contact info for urgent issues
+• Final resolution confirmation
+
+**📧 Email Updates:**
+• Detailed status reports with authority responses
+• Weekly summary of all your complaints
+• Document attachments if authorities provide them
+• Escalation instructions if delays occur
+
+**🌐 In-App Notifications:**
+• Real-time updates when you visit the website
+• Red badge showing new updates in "My Reports"
+• Chatbot can also tell you about recent changes
+
+**⚙️ Manage Preferences:**
+• Go to Settings → Notifications
+• Choose SMS, email, or both
+• Set frequency (immediate, daily, weekly)
+• Turn off non-critical updates if desired
+
+Never miss an update on your complaints! 📬`
+    },
+    {
+      keywords: ['ai features', 'smart suggestions', 'auto category', 'ai help'],
+      response: `🤖 **AI-Powered Features:**
+
+Our system uses AI to make complaint reporting smarter and faster:
+
+**🎯 Smart Categorization:**
+• AI automatically suggests the best category for your complaint
+• Analyzes your description to recommend priority level
+• Identifies the right authority to handle your issue
+
+**💡 Intelligent Suggestions:**
+• Real-time writing tips while you type your complaint
+• Location auto-complete based on your input
+• Similar resolved cases shown for reference
+
+**🔍 Enhanced Search:**
+• Ask me questions like "How many road complaints are pending?"
+• Search your complaints by speaking naturally
+• Get insights about complaint patterns in your area
+
+**📊 Predictive Analytics:**
+• Estimated resolution time based on similar cases
+• Best time to submit for faster response
+• Success rate predictions for different issue types
+
+**🗣️ Conversational Interface:**
+• Chat with me in natural language
+• Get step-by-step guidance when needed
+• Voice-to-text powered by AI recognition
+
+The AI learns from successful resolutions to help everyone get better results! 🚀`
+    }
+  ];
+
+  // Check for feature-specific questions
+  for (const faq of featureQuestions) {
+    if (faq.keywords.some(keyword => lowerMessage.includes(keyword))) {
+      return faq.response;
+    }
+  }
+
+  return null;
+};
+
+// Enhanced context-aware response function with natural language processing
 const getContextualResponse = async (message: string, userData: any, supabase: any, userId?: string): Promise<string> => {
   const lowerMessage = message.toLowerCase();
   
-  // Check if user is asking about their specific complaints
-  if ((lowerMessage.includes('my') || lowerMessage.includes('track') || lowerMessage.includes('status')) && userId) {
+  // First check for feature-aware FAQ responses
+  const featureFAQ = getFeatureAwareFAQ(message, userData);
+  if (featureFAQ) {
+    return featureFAQ;
+  }
+
+  // Handle user-specific queries with data
+  if (userId) {
     const userComplaintData = await getUserComplaintData(supabase, userId);
     
-    if (lowerMessage.includes('status') || lowerMessage.includes('track')) {
+    // Status and tracking queries
+    if (lowerMessage.includes('status') || lowerMessage.includes('track') || lowerMessage.includes('my complaint')) {
       if (userComplaintData.totalIssues === 0) {
-        return `📊 **Your Complaint Status:**
+        return `🔍 **Your Complaint Status:**
 
-You haven't submitted any complaints yet. Would you like me to help you report an issue?
+You haven't submitted any complaints yet! Let me help you get started.
 
-🚀 **Quick Start:**
-• Click "Report Issues" in the dashboard
-• I can guide you step-by-step through the process
-• Get a tracking ID to monitor progress
+**Quick Actions:**
+• 📝 Click "Report Issues" to submit your first complaint
+• 🎤 Use voice input if you prefer speaking
+• 📸 Upload photos to help authorities understand the issue better
 
-What issue would you like to report? 🤔`;
+**Pro Tip:** The Status Tracker is located in "My Reports" on your dashboard - bookmark it for easy access once you have complaints! 🎯
+
+What issue would you like to report today?`;
       }
 
-      let statusResponse = `📊 **Your Complaint Status Dashboard:**\n\n`;
-      statusResponse += `📈 **Overview:**\n`;
-      statusResponse += `• Total Complaints: ${userComplaintData.totalIssues}\n`;
-      statusResponse += `• ⏳ Pending: ${userComplaintData.pendingIssues}\n`;
-      statusResponse += `• ✅ Resolved: ${userComplaintData.resolvedIssues}\n\n`;
+      return `📊 **Your Current Status Overview:**
 
-      if (userComplaintData.recentIssue) {
-        statusResponse += `🔍 **Most Recent Complaint:**\n`;
-        statusResponse += `• **Title:** ${userComplaintData.recentIssue.title}\n`;
-        statusResponse += `• **Category:** ${userComplaintData.recentIssue.category}\n`;
-        statusResponse += `• **Status:** ${userComplaintData.recentIssue.status}\n`;
-        statusResponse += `• **Priority:** ${userComplaintData.recentIssue.priority}\n`;
-        statusResponse += `• **Submitted:** ${new Date(userComplaintData.recentIssue.created_at).toLocaleDateString()}\n\n`;
-      }
+**📈 Summary:** ${userComplaintData.totalIssues} total complaints
+• 🔴 **${userComplaintData.pendingIssues} Pending** (awaiting review)
+• 🟡 **${userComplaintData.inProgressIssues} In Progress** (being resolved)  
+• 🟢 **${userComplaintData.resolvedIssues} Resolved** (completed)
 
-      statusResponse += `💡 **Next Steps:**\n`;
-      if (userComplaintData.pendingIssues > 0) {
-        statusResponse += `• Your pending complaints are being reviewed by authorities\n`;
-        statusResponse += `• You'll receive SMS/email updates on progress\n`;
-        statusResponse += `• Typical resolution time: 3-7 business days\n`;
-      }
-      statusResponse += `• Need help with a new issue? I'm here to guide you! 😊`;
+${userComplaintData.recentIssue ? `**🔍 Latest:** "${userComplaintData.recentIssue.title}" (${userComplaintData.recentIssue.status}) - ${userComplaintData.recentIssue.category}` : ''}
 
-      return statusResponse;
+**🔍 To see detailed status:** Go to "My Reports" in your dashboard - that's where the Status Tracker lives!
+
+${userComplaintData.pendingIssues > 0 ? `💡 **Your pending complaints** are being reviewed. Average response time: ${userComplaintData.avgResponseTime}.` : ''}
+
+Need help with anything specific? 😊`;
     }
 
-    if (lowerMessage.includes('complaint') || lowerMessage.includes('issue')) {
-      if (userComplaintData.totalIssues > 0) {
-        return `📋 **Your Complaint History:**
+    // Resolved issues query
+    if (lowerMessage.includes('resolved') || lowerMessage.includes('completed') || lowerMessage.includes('fixed')) {
+      if (userComplaintData.resolvedIssues === 0) {
+        return `✅ **Your Resolved Complaints:**
 
-You have ${userComplaintData.totalIssues} complaint(s) on record:
-${userComplaintData.issues.slice(0, 3).map((issue: any, index: number) => 
-  `${index + 1}. **${issue.title}** (${issue.category}) - Status: ${issue.status}`
-).join('\n')}
+You don't have any resolved complaints yet. ${userComplaintData.pendingIssues > 0 ? `But you have ${userComplaintData.pendingIssues} pending complaints being worked on!` : 'No complaints submitted yet.'}
 
-${userComplaintData.totalIssues > 3 ? `\n...and ${userComplaintData.totalIssues - 3} more. Check "My Reports" for full details.\n` : ''}
+${userComplaintData.pendingIssues > 0 ? `**⏰ Estimated resolution:** Most complaints in your categories resolve within ${userComplaintData.avgResponseTime}.` : ''}
 
-🤔 **Need Help With:**
-• Updating an existing complaint?
-• Checking specific status details?
-• Reporting a new issue?
+${userComplaintData.totalIssues === 0 ? 'Ready to report an issue? I can guide you through the process!' : 'Your pending complaints will appear here once authorities resolve them.'}`;
+      }
 
-Just let me know! 💬`;
+      let resolvedResponse = `✅ **Your Resolved Complaints (${userComplaintData.resolvedIssues}):**\n\n`;
+      
+      userComplaintData.resolvedList.forEach((issue: any, index: number) => {
+        resolvedResponse += `${index + 1}. **${issue.title}**\n`;
+        resolvedResponse += `   Category: ${issue.category} | Priority: ${issue.priority}\n`;
+        resolvedResponse += `   Resolved: ${new Date(issue.updated_at).toLocaleDateString()}\n\n`;
+      });
+
+      if (userComplaintData.resolvedIssues > 3) {
+        resolvedResponse += `...and ${userComplaintData.resolvedIssues - 3} more resolved complaints.\n\n`;
+      }
+
+      resolvedResponse += `🎯 **Success Rate:** Great job! These issues are now fixed thanks to your reporting.`;
+      
+      return resolvedResponse;
+    }
+
+    // Pending count query  
+    if (lowerMessage.includes('pending') || lowerMessage.includes('how many')) {
+      if (userComplaintData.pendingIssues === 0) {
+        return `📊 **Pending Complaints Count:** 
+
+You have **0 pending complaints** right now! ${userComplaintData.totalIssues > 0 ? `All your ${userComplaintData.totalIssues} complaints have been processed.` : 'No complaints submitted yet.'}
+
+${userComplaintData.resolvedIssues > 0 ? `🎉 **Great news:** ${userComplaintData.resolvedIssues} of your complaints have been resolved!` : ''}
+
+Ready to report a new issue? I'm here to help! 🚀`;
+      }
+
+      let pendingResponse = `⏳ **Your Pending Complaints (${userComplaintData.pendingIssues}):**\n\n`;
+      
+      userComplaintData.pendingList.forEach((issue: any, index: number) => {
+        const daysPending = Math.floor((Date.now() - new Date(issue.created_at).getTime()) / (1000 * 60 * 60 * 24));
+        pendingResponse += `${index + 1}. **${issue.title}** (${issue.category})\n`;
+        pendingResponse += `   Priority: ${issue.priority} | Submitted: ${daysPending} days ago\n\n`;
+      });
+
+      pendingResponse += `💡 **Status Check:** Go to "My Reports" in your dashboard for real-time updates on these complaints.
+
+⚡ **Average resolution time** for ${Object.keys(userComplaintData.categoryStats)[0] || 'your issues'}: ${userComplaintData.avgResponseTime}`;
+
+      return pendingResponse;
+    }
+
+    // Category-specific queries
+    if (lowerMessage.includes('road') || lowerMessage.includes('water') || lowerMessage.includes('waste')) {
+      const categoryMap: any = {
+        'road': 'Roads',
+        'water': 'Water Supply', 
+        'waste': 'Waste Management',
+        'electric': 'Electricity',
+        'drainage': 'Drainage'
+      };
+      
+      const queriedCategory = Object.keys(categoryMap).find(cat => lowerMessage.includes(cat));
+      if (queriedCategory && userComplaintData.categoryStats[categoryMap[queriedCategory]]) {
+        const count = userComplaintData.categoryStats[categoryMap[queriedCategory]];
+        return `📊 **Your ${categoryMap[queriedCategory]} Complaints:**
+
+You've reported **${count} ${categoryMap[queriedCategory].toLowerCase()} issue(s)**.
+
+**🔍 To see details:** Check "My Reports" → Filter by "${categoryMap[queriedCategory]}" category.
+
+**📞 Relevant Authority:** 
+${queriedCategory === 'road' ? '• GHMC Road Department: 155304' : 
+  queriedCategory === 'water' ? '• Hyderabad Water Board: 155313' :
+  queriedCategory === 'waste' ? '• GHMC Sanitation: 155304' :
+  '• Check the complaint details for authority contact info'}
+
+Need help with a new ${queriedCategory} issue? I can guide you through reporting it! 🛠️`;
       }
     }
   }
 
-  // Original FAQ patterns with enhanced responses
+  // Fallback to general FAQ responses
   return getFallbackResponse(message);
 };
 
@@ -421,32 +699,51 @@ serve(async (req) => {
     // Try OpenAI API first
     if (openAIApiKey) {
       try {
-        // Get contextual information for better AI responses
+        // Get rich contextual information for AI responses
         let contextualInfo = '';
         if (userId) {
           const userComplaintData = await getUserComplaintData(supabase, userId);
-          contextualInfo = `\n\nUser Context:
-- Total complaints submitted: ${userComplaintData.totalIssues}
-- Pending complaints: ${userComplaintData.pendingIssues}
-- Resolved complaints: ${userComplaintData.resolvedIssues}
-- Most recent complaint: ${userComplaintData.recentIssue ? `"${userComplaintData.recentIssue.title}" (${userComplaintData.recentIssue.status})` : 'None'}`;
+          contextualInfo = `
+
+User Context & Website Features:
+- Total complaints: ${userComplaintData.totalIssues} (${userComplaintData.pendingIssues} pending, ${userComplaintData.inProgressIssues} in progress, ${userComplaintData.resolvedIssues} resolved)
+- Categories used: ${Object.keys(userComplaintData.categoryStats).join(', ')}
+- Has uploaded images: ${userComplaintData.hasImages ? 'Yes' : 'No'}
+- Average resolution time: ${userComplaintData.avgResponseTime}
+- Most recent: ${userComplaintData.recentIssue ? `"${userComplaintData.recentIssue.title}" (${userComplaintData.recentIssue.status})` : 'None'}
+
+Website Features Available:
+- Status Tracker: Located in "My Reports" section of dashboard
+- Image Upload: Supported during complaint submission (JPG, PNG, up to 5MB)
+- Voice-to-Text: Microphone icon available for speaking complaints
+- Anonymous Reporting: Option available for sensitive complaints
+- SMS/Email Notifications: Automatic updates sent to users
+- AI Features: Smart categorization, predictive analytics, conversational interface`;
         }
 
-        const systemPrompt = `You are the grievance management AI assistant for the "Civic Crowdsourced Reporting System" in Telangana. Your job is to:
+        const systemPrompt = `You are an advanced AI assistant for the "Civic Crowdsourced Reporting System" in Telangana. You are feature-aware and data-connected.
 
-1. Help users report municipal issues (garbage, water supply, roads, drainage, lighting) and political corruption (bribery, misuse of power)
-2. Categorize complaints based on user input
-3. Collect location information (district or pincode)
-4. Provide guidance on the reporting process
-5. Answer questions about civic issues and government services in Telangana
-6. Help users track their complaint status with personalized information
-7. Provide specific status updates and actionable next steps
+Your capabilities:
+1. Answer questions about website features (Status Tracker location, image upload, voice input, etc.)
+2. Provide personalized complaint status using real user data
+3. Help users navigate the platform efficiently
+4. Guide through complaint reporting with smart suggestions
+5. Give natural, conversational responses (not just step-by-step instructions)
+6. Connect users to the right authorities with specific contact information
 
-Key authorities to reference:
-- Municipal issues: Greater Hyderabad Municipal Corporation (155304, commissioner-ghmc@gov.in)
-- Political corruption: Anti Corruption Bureau Telangana (040-2325-1555, dg_acb@telangana.gov.in)
+Key Features to Reference:
+- Status Tracker: In "My Reports" dashboard section
+- Image Upload: Available during complaint submission (5MB limit, multiple formats)
+- Voice-to-Text: Microphone icon for audio input
+- Anonymous Mode: For sensitive/corruption complaints
+- Smart Categorization: AI suggests categories and priorities
+- Real-time Notifications: SMS/Email updates on status changes
 
-Always be helpful, professional, and guide users through the civic reporting process. Protect user anonymity when requested. Use emojis to make responses engaging. Be specific and actionable in your advice.${contextualInfo}`;
+Authorities:
+- Municipal: GHMC (155304), Water Board (155313), Electricity (1912)
+- Corruption: ACB Telangana (040-2325-1555), Vigilance (040-2346-1151)
+
+Be conversational, helpful, and specific. Use user data when available. Avoid generic responses - tailor answers to the actual question and context.${contextualInfo}`;
 
         const response = await fetch('https://api.openai.com/v1/chat/completions', {
           method: 'POST',
