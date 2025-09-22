@@ -6,6 +6,7 @@ import ReportIssues from '@/components/ReportIssues';
 import StatusTracker from '@/components/StatusTracker';
 import Suggestions from '@/components/Suggestions';
 import Analytics from '@/components/Analytics';
+import MyReports from '@/components/MyReports';
 import civicHero from '@/assets/civic-hero.jpg';
 const Index = () => {
   const [activeTab, setActiveTab] = useState('reports');
@@ -51,6 +52,8 @@ const Index = () => {
           </div>;
       case 'status':
         return <StatusTracker onViewSuggestions={handleViewSuggestions} />;
+      case 'myreports':
+        return <MyReports />;
       case 'analytics':
         return <Analytics />;
       default:

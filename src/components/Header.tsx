@@ -39,8 +39,9 @@ const Header = ({ activeTab, setActiveTab }: {
 
   const navItems = [
     { id: 'reports', label: 'Report Issues', icon: FileText },
-    { id: 'suggestions', label: 'Suggestions', icon: MessageSquare },
     { id: 'status', label: 'Status Tracker', icon: BarChart3 },
+    { id: 'myreports', label: 'My Reports', icon: User },
+    { id: 'suggestions', label: 'Suggestions', icon: MessageSquare },
     { id: 'analytics', label: 'Analytics', icon: Settings }
   ];
 

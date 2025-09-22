@@ -33,7 +33,7 @@ const ReportIssues = () => {
   const [formData, setFormData] = useState({
     title: '',
     category: '',
-    customCategory: '',
+    subcategory: '',
     description: '',
     location: '',
     images: [] as File[]
@@ -60,16 +60,22 @@ const ReportIssues = () => {
   }, [transcript, activeField]);
 
   const categories = [
-    { id: 'potholes', label: 'Potholes & Road Issues', icon: Car },
-    { id: 'streetlights', label: 'Street Lighting', icon: Lightbulb },
-    { id: 'water', label: 'Water Issue', icon: Droplets },
-    { id: 'trash', label: 'Waste Management', icon: Trash2 },
-    { id: 'construction', label: 'Construction Issues', icon: Construction },
-    { id: 'parks', label: 'Parks & Recreation', icon: TreePine },
-    { id: 'authority', label: 'Authority Issues', icon: Shield },
-    { id: 'corpse', label: 'Corpse on Streets', icon: AlertTriangle },
-    { id: 'other', label: 'Other Issues', icon: AlertCircle }
+    { id: 'municipal', label: 'Municipal Corporation', icon: Shield },
+    { id: 'corruption', label: 'Political Corruption', icon: AlertTriangle }
   ];
+
+  const subcategories = {
+    municipal: [
+      { id: 'potholes', label: 'Potholes & Road Issues', icon: Car },
+      { id: 'streetlights', label: 'Street Lighting', icon: Lightbulb },
+      { id: 'water', label: 'Water Issue', icon: Droplets },
+      { id: 'trash', label: 'Waste Management', icon: Trash2 },
+      { id: 'construction', label: 'Construction Issues', icon: Construction },
+      { id: 'parks', label: 'Parks & Recreation', icon: TreePine },
+      { id: 'corpse', label: 'Corpse on Streets', icon: AlertCircle }
+    ],
+    corruption: []
+  };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -107,19 +113,23 @@ const ReportIssues = () => {
       return;
     }
 
-    if (formData.category === 'other' && !formData.customCategory) {
+    if (formData.category === 'municipal' && !formData.subcategory) {
       toast({
         title: "Missing Information",
-        description: "Please specify the custom category.",
+        description: "Please select a subcategory for Municipal Corporation issues.",
         variant: "destructive"
       });
       return;
     }
 
     try {
+      const categoryValue = formData.category === 'municipal' && formData.subcategory 
+        ? formData.subcategory 
+        : formData.category;
+      
       const result = await saveIssue({
         title: formData.title,
-        category: formData.category === 'other' ? formData.customCategory : formData.category,
+        category: categoryValue,
         description: formData.description,
         location: formData.location,
         images: formData.images
@@ -130,7 +140,7 @@ const ReportIssues = () => {
         setFormData({
           title: '',
           category: '',
-          customCategory: '',
+          subcategory: '',
           description: '',
           location: '',
           images: []
@@ -195,7 +205,11 @@ const ReportIssues = () => {
     <div className="max-w-4xl mx-auto p-6">
       <div className="mb-8">
         <h2 className="text-3xl font-bold text-foreground mb-2">Report an Issue</h2>
-        <p className="text-muted-foreground">Help improve your community by reporting issues that need attention.</p>
+        <p className="text-muted-foreground">
+          Civic Crowdsourced Reporting System for Telangana - Report municipal issues or political corruption cases. 
+          Municipal issues will be forwarded to Greater Hyderabad Municipal Corporation (155304), 
+          corruption cases to Anti Corruption Bureau Telangana (040-2325-1555).
+        </p>
       </div>
 
       <Card className="p-6 shadow-card bg-gradient-card border-0">
@@ -263,18 +277,28 @@ const ReportIssues = () => {
             </Select>
           </div>
 
-          {/* Custom Category Input */}
-          {formData.category === 'other' && (
+          {/* Subcategory Selection */}
+          {formData.category === 'municipal' && (
             <div className="space-y-2">
-              <Label htmlFor="customCategory" className="text-sm font-medium">Specify Category *</Label>
-              <Input
-                id="customCategory"
-                value={formData.customCategory}
-                onChange={(e) => setFormData(prev => ({ ...prev, customCategory: e.target.value }))}
-                placeholder="Enter specific category"
-                className="transition-smooth focus:shadow-soft"
-                required
-              />
+              <Label htmlFor="subcategory" className="text-sm font-medium">Municipal Issue Type *</Label>
+              <Select value={formData.subcategory} onValueChange={(value) => setFormData(prev => ({ ...prev, subcategory: value }))}>
+                <SelectTrigger className="transition-smooth focus:shadow-soft">
+                  <SelectValue placeholder="Select issue type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {subcategories.municipal.map((sub) => {
+                    const Icon = sub.icon;
+                    return (
+                      <SelectItem key={sub.id} value={sub.id}>
+                        <div className="flex items-center space-x-2">
+                          <Icon className="w-4 h-4" />
+                          <span>{sub.label}</span>
+                        </div>
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
             </div>
           )}
 
