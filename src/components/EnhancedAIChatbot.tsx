@@ -34,7 +34,7 @@ export default function EnhancedAIChatbot() {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
-      content: 'Hello! I\'m your AI civic assistant. I can help you:\n\n• Report complaints step by step\n• Categorize your issues automatically\n• Assess priority levels\n• Answer questions about civic services in Telangana\n\nHow can I help you today?',
+      content: '👋 Hello! I\'m your AI civic assistant for Telangana.\n\n🎯 **I can help you with:**\n• 📝 Report complaints step by step\n• 📊 Track your complaint status in real-time\n• 🏢 Understand issue categories & authorities\n• 💬 Answer questions about civic services\n• 🔍 Check your submission history\n\n**Quick commands:**\n• "Track my complaints" - See your status\n• "Report an issue" - Step-by-step guidance\n• "My complaint history" - View all submissions\n\nWhat would you like to do today? 😊',
       sender: 'ai',
       timestamp: new Date(),
       type: 'guidance'
@@ -129,12 +129,14 @@ export default function EnhancedAIChatbot() {
           }, 500);
         }
       } else {
-        // Regular AI chat
+        // Regular AI chat with user context
+        const { data: { user } } = await supabase.auth.getUser();
         const { data, error } = await supabase.functions.invoke('ai-chatbot', {
           body: {
             message: currentInput,
             conversationId: conversationId,
-            context: 'enhanced_chatbot'
+            context: 'enhanced_chatbot',
+            userId: user?.id || null
           }
         });
 
@@ -295,10 +297,10 @@ Each gets routed to the right authority automatically! ⚡`;
 
   return (
     <div className="fixed bottom-6 right-6 z-50">
-      <Card className={`w-96 transition-all duration-300 shadow-card bg-gradient-card backdrop-blur-sm border-primary/20 ${
+      <Card className={`w-96 transition-all duration-300 shadow-elegant bg-card/95 backdrop-blur-md border border-border/50 ${
         isMinimized ? 'h-16' : 'h-[600px]'
       }`}>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 bg-gradient-primary text-white rounded-t-lg">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 bg-gradient-primary text-primary-foreground rounded-t-lg border-b border-border/20">
           <div className="flex items-center space-x-2">
             <Bot className="h-5 w-5" />
             <CardTitle className="text-lg font-semibold">AI Civic Assistant</CardTitle>
@@ -331,13 +333,13 @@ Each gets routed to the right authority automatically! ⚡`;
         {!isMinimized && (
           <CardContent className="flex flex-col h-[520px] p-0">
             {/* Quick Actions Bar */}
-            <div className="p-3 bg-muted/30 border-b">
+            <div className="p-3 bg-muted/20 border-b border-border/30">
               <div className="flex gap-2 flex-wrap">
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={startStepByStepMode}
-                  className="text-xs"
+                  className="text-xs hover-scale transition-all border-primary/30 hover:border-primary/60"
                   disabled={stepByStepMode}
                 >
                   <FileText className="h-3 w-3 mr-1" />
@@ -347,7 +349,7 @@ Each gets routed to the right authority automatically! ⚡`;
                   variant="outline"
                   size="sm"
                   onClick={() => setStepByStepMode(false)}
-                  className="text-xs"
+                  className="text-xs hover-scale transition-all border-primary/30 hover:border-primary/60"
                   disabled={!stepByStepMode}
                 >
                   <MessageCircle className="h-3 w-3 mr-1" />
@@ -365,22 +367,22 @@ Each gets routed to the right authority automatically! ⚡`;
                         message.sender === 'user' ? 'flex-row-reverse space-x-reverse' : ''
                       }`}
                     >
-                      <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
+                      <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center shadow-sm transition-all ${
                         message.sender === 'user' 
-                          ? 'bg-primary text-white' 
-                          : 'bg-accent text-white'
+                          ? 'bg-primary text-primary-foreground' 
+                          : 'bg-accent text-accent-foreground'
                       }`}>
                         {message.sender === 'user' ? <User className="h-4 w-4" /> : getMessageIcon(message.type)}
                       </div>
-                      <div className={`max-w-[80%] ${message.sender === 'user' ? 'text-right' : ''}`}>
-                        <div className={`rounded-lg p-3 shadow-soft ${
+                      <div className={`max-w-[80%] animate-fade-in ${message.sender === 'user' ? 'text-right' : ''}`}>
+                        <div className={`rounded-2xl p-3 shadow-elegant transition-all hover:shadow-lg ${
                           message.sender === 'user'
-                            ? 'bg-primary text-white ml-auto'
+                            ? 'bg-primary text-primary-foreground ml-auto rounded-br-md'
                             : message.type === 'guidance' 
-                              ? 'bg-gradient-subtle border border-primary/20'
-                              : 'bg-white border border-border'
+                              ? 'bg-gradient-subtle border border-primary/20 rounded-bl-md'
+                              : 'bg-card border border-border/50 rounded-bl-md'
                         }`}>
-                          <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                          <p className="text-sm whitespace-pre-wrap leading-relaxed">{message.content}</p>
                         </div>
                         <p className="text-xs text-muted-foreground mt-1 px-1">
                           {formatTime(message.timestamp)}
@@ -408,15 +410,15 @@ Each gets routed to the right authority automatically! ⚡`;
                 ))}
                 
                 {isLoading && (
-                  <div className="flex items-start space-x-2">
-                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-accent text-white flex items-center justify-center">
+                  <div className="flex items-start space-x-2 animate-fade-in">
+                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-accent text-accent-foreground flex items-center justify-center shadow-sm">
                       <Bot className="h-4 w-4" />
                     </div>
-                    <div className="bg-white border border-border rounded-lg p-3 shadow-soft">
+                    <div className="bg-card border border-border/50 rounded-2xl rounded-bl-md p-4 shadow-elegant">
                       <div className="flex space-x-1">
-                        <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce"></div>
-                        <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
-                        <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+                        <div className="w-2 h-2 bg-primary/60 rounded-full animate-bounce"></div>
+                        <div className="w-2 h-2 bg-primary/60 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
+                        <div className="w-2 h-2 bg-primary/60 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
                       </div>
                     </div>
                   </div>
@@ -425,7 +427,7 @@ Each gets routed to the right authority automatically! ⚡`;
               <div ref={messagesEndRef} />
             </ScrollArea>
 
-            <div className="border-t bg-background p-4">
+            <div className="border-t border-border/30 bg-background/50 p-4 backdrop-blur-sm">
               <div className="flex space-x-2">
                 <Input
                   value={inputMessage}
@@ -433,7 +435,7 @@ Each gets routed to the right authority automatically! ⚡`;
                   onKeyPress={handleKeyPress}
                   placeholder={stepByStepMode ? "Answer the current question..." : "Ask me about civic issues, report complaints..."}
                   disabled={isLoading}
-                  className="flex-1"
+                  className="flex-1 rounded-xl border-border/50 bg-background/80 focus:border-primary/50 transition-all"
                 />
                 {speechSupported && (
                   <Button
@@ -441,7 +443,7 @@ Each gets routed to the right authority automatically! ⚡`;
                     disabled={isLoading}
                     size="sm"
                     variant={isListening ? "destructive" : "outline"}
-                    className="px-3"
+                    className="px-3 rounded-xl hover-scale transition-all"
                   >
                     {isListening ? <Square className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
                   </Button>
@@ -450,15 +452,15 @@ Each gets routed to the right authority automatically! ⚡`;
                   onClick={sendMessage}
                   disabled={!inputMessage.trim() || isLoading}
                   size="sm"
-                  className="px-3 bg-gradient-primary hover:shadow-glow transition-all"
+                  className="px-3 bg-gradient-primary hover:shadow-glow rounded-xl hover-scale transition-all"
                 >
                   <Send className="h-4 w-4" />
                 </Button>
               </div>
-              <p className="text-xs text-muted-foreground mt-2 text-center">
+              <p className="text-xs text-muted-foreground/80 mt-2 text-center">
                 {stepByStepMode 
-                  ? 'Step-by-step complaint reporting mode' 
-                  : 'AI assistant for Telangana civic reporting'
+                  ? '🔄 Step-by-step complaint reporting mode' 
+                  : '🤖 AI assistant for Telangana civic reporting'
                 }
               </p>
             </div>
