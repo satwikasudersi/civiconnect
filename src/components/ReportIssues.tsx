@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
 import { 
   MapPin, 
   Camera, 
@@ -20,12 +21,17 @@ import {
   AlertTriangle,
   Mic,
   MicOff,
-  Square
+  Square,
+  Sparkles,
+  Bot,
+  Zap
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { saveIssue } from '@/lib/supabaseOperations';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSpeechRecognition } from '@/hooks/useSpeechRecognition';
+import { useAIComplaintAssistant } from '@/hooks/useAIComplaintAssistant';
+import AISuggestionCard from '@/components/AISuggestionCard';
 
 const ReportIssues = () => {
   const { toast } = useToast();
@@ -36,10 +42,13 @@ const ReportIssues = () => {
     subcategory: '',
     description: '',
     location: '',
+    priority: 'medium' as 'low' | 'medium' | 'high',
     images: [] as File[]
   });
 
+  const [showAISuggestions, setShowAISuggestions] = useState(true);
   const [activeField, setActiveField] = useState<'title' | 'description' | 'location' | null>(null);
+  
   const { 
     isSupported: speechSupported, 
     isListening, 
@@ -48,6 +57,15 @@ const ReportIssues = () => {
     stopListening, 
     resetTranscript 
   } = useSpeechRecognition();
+
+  const {
+    isAnalyzing,
+    aiSuggestions,
+    analyzeComplaintText,
+    analyzeUploadedImage,
+    acceptAISuggestion,
+    resetAIAssistant
+  } = useAIComplaintAssistant();
 
   // Handle speech recognition transcript updates
   useEffect(() => {
@@ -58,6 +76,17 @@ const ReportIssues = () => {
       }));
     }
   }, [transcript, activeField]);
+
+  // AI Analysis Effect - Analyze text with debouncing
+  useEffect(() => {
+    if ((formData.title.trim() || formData.description.trim()) && showAISuggestions) {
+      const timer = setTimeout(() => {
+        analyzeComplaintText(formData.title, formData.description);
+      }, 1000); // 1 second debounce
+
+      return () => clearTimeout(timer);
+    }
+  }, [formData.title, formData.description, analyzeComplaintText, showAISuggestions]);
 
   const categories = [
     { id: 'municipal', label: 'Municipal Corporation', icon: Shield },
@@ -77,12 +106,19 @@ const ReportIssues = () => {
     corruption: []
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
+    const newImages = [...formData.images, ...files].slice(0, 5); // Max 5 images
+    
     setFormData(prev => ({
       ...prev,
-      images: [...prev.images, ...files].slice(0, 5) // Max 5 images
+      images: newImages
     }));
+
+    // Analyze first uploaded image with AI if AI suggestions are enabled
+    if (files.length > 0 && showAISuggestions) {
+      await analyzeUploadedImage(files[0]);
+    }
   };
 
   const removeImage = (index: number) => {
@@ -132,19 +168,23 @@ const ReportIssues = () => {
         category: categoryValue,
         description: formData.description,
         location: formData.location,
+        priority: formData.priority,
         images: formData.images
       });
 
       if (result) {
-        // Reset form
+        // Reset form and AI
         setFormData({
           title: '',
           category: '',
           subcategory: '',
           description: '',
           location: '',
+          priority: 'medium',
           images: []
         });
+        resetAIAssistant();
+        resetTranscript();
       }
     } catch (error) {
       console.error('Error submitting issue:', error);
@@ -201,10 +241,42 @@ const ReportIssues = () => {
     }
   };
 
+  const handleAISuggestionAccept = (field: string, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+    acceptAISuggestion(field, value);
+  };
+
+  const getPriorityBadgeVariant = (priority: string) => {
+    switch (priority) {
+      case 'high':
+        return 'destructive';
+      case 'medium':
+        return 'secondary';
+      case 'low':
+        return 'outline';
+      default:
+        return 'secondary';
+    }
+  };
+
   return (
     <div className="max-w-4xl mx-auto p-6">
       <div className="mb-8">
-        <h2 className="text-3xl font-bold text-foreground mb-2">Report an Issue</h2>
+        <div className="flex items-center space-x-3 mb-4">
+          <h2 className="text-3xl font-bold text-foreground">Report an Issue</h2>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowAISuggestions(!showAISuggestions)}
+            className={`ml-auto ${showAISuggestions ? 'bg-primary/10 border-primary' : ''}`}
+          >
+            <Bot className="w-4 h-4 mr-2" />
+            {showAISuggestions ? 'AI Enabled' : 'AI Disabled'}
+          </Button>
+        </div>
         <p className="text-muted-foreground">
           Civic Crowdsourced Reporting System for Telangana - Report municipal issues or political corruption cases. 
           Municipal issues will be forwarded to Greater Hyderabad Municipal Corporation (155304), 
@@ -212,247 +284,319 @@ const ReportIssues = () => {
         </p>
       </div>
 
-      <Card className="p-6 shadow-card bg-gradient-card border-0">
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Issue Title */}
-          <div className="space-y-2">
-            <Label htmlFor="title" className="text-sm font-medium">Issue Title *</Label>
-            <div className="flex space-x-2">
-              <Input
-                id="title"
-                value={formData.title}
-                onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                placeholder="Brief description of the issue"
-                className="flex-1 transition-smooth focus:shadow-soft"
-                required
-              />
-              {speechSupported && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => {
-                    if (isListening && activeField === 'title') {
-                      stopSpeechRecognition();
-                    } else {
-                      startSpeechRecognition('title');
-                    }
-                  }}
-                  className={`px-3 hover:shadow-soft transition-smooth ${
-                    isListening && activeField === 'title' ? 'bg-red-500 text-white hover:bg-red-600' : ''
-                  }`}
-                >
-                  {isListening && activeField === 'title' ? (
-                    <Square className="w-4 h-4" />
-                  ) : (
-                    <Mic className="w-4 h-4" />
-                  )}
-                </Button>
-              )}
-            </div>
-            {isListening && activeField === 'title' && (
-              <p className="text-xs text-blue-600 animate-pulse">🎤 Listening... Click stop when finished</p>
-            )}
-          </div>
-
-          {/* Category Selection */}
-          <div className="space-y-2">
-            <Label htmlFor="category" className="text-sm font-medium">Category *</Label>
-            <Select value={formData.category} onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}>
-              <SelectTrigger className="transition-smooth focus:shadow-soft">
-                <SelectValue placeholder="Select issue category" />
-              </SelectTrigger>
-              <SelectContent>
-                {categories.map((category) => {
-                  const Icon = category.icon;
-                  return (
-                    <SelectItem key={category.id} value={category.id}>
-                      <div className="flex items-center space-x-2">
-                        <Icon className="w-4 h-4" />
-                        <span>{category.label}</span>
-                      </div>
-                    </SelectItem>
-                  );
-                })}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Subcategory Selection */}
-          {formData.category === 'municipal' && (
-            <div className="space-y-2">
-              <Label htmlFor="subcategory" className="text-sm font-medium">Municipal Issue Type *</Label>
-              <Select value={formData.subcategory} onValueChange={(value) => setFormData(prev => ({ ...prev, subcategory: value }))}>
-                <SelectTrigger className="transition-smooth focus:shadow-soft">
-                  <SelectValue placeholder="Select issue type" />
-                </SelectTrigger>
-                <SelectContent>
-                  {subcategories.municipal.map((sub) => {
-                    const Icon = sub.icon;
-                    return (
-                      <SelectItem key={sub.id} value={sub.id}>
-                        <div className="flex items-center space-x-2">
-                          <Icon className="w-4 h-4" />
-                          <span>{sub.label}</span>
-                        </div>
-                      </SelectItem>
-                    );
-                  })}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-
-          {/* Description */}
-          <div className="space-y-2">
-            <div className="flex justify-between items-center">
-              <Label htmlFor="description" className="text-sm font-medium">Description *</Label>
-              {speechSupported && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    if (isListening && activeField === 'description') {
-                      stopSpeechRecognition();
-                    } else {
-                      startSpeechRecognition('description');
-                    }
-                  }}
-                  className={`px-3 hover:shadow-soft transition-smooth ${
-                    isListening && activeField === 'description' ? 'bg-red-500 text-white hover:bg-red-600' : ''
-                  }`}
-                >
-                  {isListening && activeField === 'description' ? (
-                    <>
-                      <Square className="w-4 h-4 mr-1" />
-                      Stop
-                    </>
-                  ) : (
-                    <>
-                      <Mic className="w-4 h-4 mr-1" />
-                      Voice
-                    </>
-                  )}
-                </Button>
-              )}
-            </div>
-            <Textarea
-              id="description"
-              value={formData.description}
-              onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-              placeholder="Provide detailed information about the issue, including when you noticed it and how it affects the community."
-              className="min-h-[120px] transition-smooth focus:shadow-soft"
-              required
-            />
-            {isListening && activeField === 'description' && (
-              <p className="text-xs text-blue-600 animate-pulse">🎤 Listening... Speak your description. Click stop when finished</p>
-            )}
-          </div>
-
-          {/* Location */}
-          <div className="space-y-2">
-            <Label htmlFor="location" className="text-sm font-medium">Location</Label>
-            <div className="flex space-x-2">
-              <Input
-                id="location"
-                value={formData.location}
-                onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
-                placeholder="Enter address or coordinates"
-                className="flex-1 transition-smooth focus:shadow-soft"
-              />
-              <Button
-                type="button"
-                variant="outline"
-                onClick={getCurrentLocation}
-                className="px-3 hover:shadow-soft transition-smooth"
-              >
-                <MapPin className="w-4 h-4" />
-              </Button>
-              {speechSupported && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => {
-                    if (isListening && activeField === 'location') {
-                      stopSpeechRecognition();
-                    } else {
-                      startSpeechRecognition('location');
-                    }
-                  }}
-                  className={`px-3 hover:shadow-soft transition-smooth ${
-                    isListening && activeField === 'location' ? 'bg-red-500 text-white hover:bg-red-600' : ''
-                  }`}
-                >
-                  {isListening && activeField === 'location' ? (
-                    <Square className="w-4 h-4" />
-                  ) : (
-                    <Mic className="w-4 h-4" />
-                  )}
-                </Button>
-              )}
-            </div>
-            {isListening && activeField === 'location' && (
-              <p className="text-xs text-blue-600 animate-pulse">🎤 Listening... Speak the location. Click stop when finished</p>
-            )}
-          </div>
-
-          {/* Image Upload */}
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">Photos (Optional)</Label>
-            <div className="space-y-4">
-              <div className="flex items-center justify-center w-full">
-                <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-border rounded-lg cursor-pointer bg-muted/30 hover:bg-muted/50 transition-smooth">
-                  <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                    <Camera className="w-8 h-8 mb-3 text-muted-foreground" />
-                    <p className="text-sm text-muted-foreground">
-                      <span className="font-medium">Click to upload</span> or drag and drop
-                    </p>
-                    <p className="text-xs text-muted-foreground">PNG, JPG up to 10MB (max 5 photos)</p>
-                  </div>
-                  <input
-                    type="file"
-                    className="hidden"
-                    multiple
-                    accept="image/*"
-                    onChange={handleImageUpload}
+      <div className="grid gap-6 lg:grid-cols-3">
+        <div className="lg:col-span-2">
+          <Card className="p-6 shadow-card bg-gradient-card border-0">
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Issue Title */}
+              <div className="space-y-2">
+                <Label htmlFor="title" className="text-sm font-medium">Issue Title *</Label>
+                <div className="flex space-x-2">
+                  <Input
+                    id="title"
+                    value={formData.title}
+                    onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                    placeholder="Brief description of the issue"
+                    className="flex-1 transition-smooth focus:shadow-soft"
+                    required
                   />
-                </label>
+                  {speechSupported && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        if (isListening && activeField === 'title') {
+                          stopSpeechRecognition();
+                        } else {
+                          startSpeechRecognition('title');
+                        }
+                      }}
+                      className={`px-3 hover:shadow-soft transition-smooth ${
+                        isListening && activeField === 'title' ? 'bg-destructive text-white hover:bg-destructive/90' : ''
+                      }`}
+                    >
+                      {isListening && activeField === 'title' ? (
+                        <Square className="w-4 h-4" />
+                      ) : (
+                        <Mic className="w-4 h-4" />
+                      )}
+                    </Button>
+                  )}
+                </div>
+                {isListening && activeField === 'title' && (
+                  <p className="text-xs text-primary animate-pulse flex items-center">
+                    <Mic className="w-3 h-3 mr-1" />
+                    Listening... Click stop when finished
+                  </p>
+                )}
               </div>
 
-              {/* Preview uploaded images */}
-              {formData.images.length > 0 && (
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  {formData.images.map((file, index) => (
-                    <div key={index} className="relative group">
-                      <img
-                        src={URL.createObjectURL(file)}
-                        alt={`Preview ${index + 1}`}
-                        className="w-full h-24 object-cover rounded-lg border"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => removeImage(index)}
-                        className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-smooth"
-                      >
-                        ×
-                      </button>
-                    </div>
-                  ))}
+              {/* Category Selection */}
+              <div className="space-y-2">
+                <Label htmlFor="category" className="text-sm font-medium">Category *</Label>
+                <Select value={formData.category} onValueChange={(value) => setFormData(prev => ({ ...prev, category: value, subcategory: '' }))}>
+                  <SelectTrigger className="transition-smooth focus:shadow-soft">
+                    <SelectValue placeholder="Select issue category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map((category) => {
+                      const Icon = category.icon;
+                      return (
+                        <SelectItem key={category.id} value={category.id}>
+                          <div className="flex items-center space-x-2">
+                            <Icon className="w-4 h-4" />
+                            <span>{category.label}</span>
+                          </div>
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Subcategory Selection */}
+              {formData.category === 'municipal' && (
+                <div className="space-y-2">
+                  <Label htmlFor="subcategory" className="text-sm font-medium">Municipal Issue Type *</Label>
+                  <Select value={formData.subcategory} onValueChange={(value) => setFormData(prev => ({ ...prev, subcategory: value }))}>
+                    <SelectTrigger className="transition-smooth focus:shadow-soft">
+                      <SelectValue placeholder="Select issue type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {subcategories.municipal.map((sub) => {
+                        const Icon = sub.icon;
+                        return (
+                          <SelectItem key={sub.id} value={sub.id}>
+                            <div className="flex items-center space-x-2">
+                              <Icon className="w-4 h-4" />
+                              <span>{sub.label}</span>
+                            </div>
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
                 </div>
               )}
-            </div>
-          </div>
 
-          {/* Submit Button */}
-          <Button
-            type="submit"
-            className="w-full bg-gradient-primary hover:shadow-glow transition-smooth py-3 text-base font-medium"
-          >
-            <Upload className="w-4 h-4 mr-2" />
-            Submit Report
-          </Button>
-        </form>
-      </Card>
+              {/* Priority Selection */}
+              <div className="space-y-2">
+                <Label htmlFor="priority" className="text-sm font-medium">Priority</Label>
+                <div className="flex space-x-2">
+                  <Select value={formData.priority} onValueChange={(value: 'low' | 'medium' | 'high') => setFormData(prev => ({ ...prev, priority: value }))}>
+                    <SelectTrigger className="transition-smooth focus:shadow-soft">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="low">
+                        <div className="flex items-center space-x-2">
+                          <div className="w-2 h-2 bg-success rounded-full" />
+                          <span>Low Priority</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="medium">
+                        <div className="flex items-center space-x-2">
+                          <Zap className="w-4 h-4 text-warning" />
+                          <span>Medium Priority</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="high">
+                        <div className="flex items-center space-x-2">
+                          <AlertTriangle className="w-4 h-4 text-destructive" />
+                          <span>High Priority (Emergency)</span>
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Badge variant={getPriorityBadgeVariant(formData.priority)} className="self-center">
+                    {formData.priority.toUpperCase()}
+                  </Badge>
+                </div>
+              </div>
+
+              {/* Description */}
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <Label htmlFor="description" className="text-sm font-medium">Description *</Label>
+                  {speechSupported && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        if (isListening && activeField === 'description') {
+                          stopSpeechRecognition();
+                        } else {
+                          startSpeechRecognition('description');
+                        }
+                      }}
+                      className={`px-3 hover:shadow-soft transition-smooth ${
+                        isListening && activeField === 'description' ? 'bg-destructive text-white hover:bg-destructive/90' : ''
+                      }`}
+                    >
+                      {isListening && activeField === 'description' ? (
+                        <>
+                          <Square className="w-4 h-4 mr-1" />
+                          Stop
+                        </>
+                      ) : (
+                        <>
+                          <Mic className="w-4 h-4 mr-1" />
+                          Voice
+                        </>
+                      )}
+                    </Button>
+                  )}
+                </div>
+                <Textarea
+                  id="description"
+                  value={formData.description}
+                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                  placeholder="Provide detailed information about the issue, including when you noticed it and how it affects the community."
+                  className="min-h-[120px] transition-smooth focus:shadow-soft"
+                  required
+                />
+                {isListening && activeField === 'description' && (
+                  <p className="text-xs text-primary animate-pulse flex items-center">
+                    <Mic className="w-3 h-3 mr-1" />
+                    Listening... Speak your description. Click stop when finished
+                  </p>
+                )}
+              </div>
+
+              {/* Location */}
+              <div className="space-y-2">
+                <Label htmlFor="location" className="text-sm font-medium">Location</Label>
+                <div className="flex space-x-2">
+                  <Input
+                    id="location"
+                    value={formData.location}
+                    onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
+                    placeholder="Enter address or coordinates"
+                    className="flex-1 transition-smooth focus:shadow-soft"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={getCurrentLocation}
+                    className="px-3 hover:shadow-soft transition-smooth"
+                  >
+                    <MapPin className="w-4 h-4" />
+                  </Button>
+                  {speechSupported && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        if (isListening && activeField === 'location') {
+                          stopSpeechRecognition();
+                        } else {
+                          startSpeechRecognition('location');
+                        }
+                      }}
+                      className={`px-3 hover:shadow-soft transition-smooth ${
+                        isListening && activeField === 'location' ? 'bg-destructive text-white hover:bg-destructive/90' : ''
+                      }`}
+                    >
+                      {isListening && activeField === 'location' ? (
+                        <Square className="w-4 h-4" />
+                      ) : (
+                        <Mic className="w-4 h-4" />
+                      )}
+                    </Button>
+                  )}
+                </div>
+                {isListening && activeField === 'location' && (
+                  <p className="text-xs text-primary animate-pulse flex items-center">
+                    <Mic className="w-3 h-3 mr-1" />
+                    Listening... Speak the location. Click stop when finished
+                  </p>
+                )}
+              </div>
+
+              {/* Image Upload */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Photos (Optional)</Label>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-center w-full">
+                    <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-border rounded-lg cursor-pointer bg-muted/30 hover:bg-muted/50 transition-smooth">
+                      <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                        <Camera className="w-8 h-8 mb-3 text-muted-foreground" />
+                        <p className="text-sm text-muted-foreground">
+                          <span className="font-medium">Click to upload</span> or drag and drop
+                        </p>
+                        <p className="text-xs text-muted-foreground">PNG, JPG up to 10MB (max 5 photos)</p>
+                        {showAISuggestions && (
+                          <p className="text-xs text-primary mt-1 flex items-center">
+                            <Sparkles className="w-3 h-3 mr-1" />
+                            AI will analyze your photos
+                          </p>
+                        )}
+                      </div>
+                      <input
+                        type="file"
+                        className="hidden"
+                        multiple
+                        accept="image/*"
+                        onChange={handleImageUpload}
+                      />
+                    </label>
+                  </div>
+
+                  {/* Preview uploaded images */}
+                  {formData.images.length > 0 && (
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                      {formData.images.map((file, index) => (
+                        <div key={index} className="relative group">
+                          <img
+                            src={URL.createObjectURL(file)}
+                            alt={`Preview ${index + 1}`}
+                            className="w-full h-24 object-cover rounded-lg border"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removeImage(index)}
+                            className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-smooth"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Submit Button */}
+              <Button
+                type="submit"
+                className="w-full bg-gradient-primary hover:shadow-glow transition-smooth py-3 text-base font-medium"
+                disabled={isAnalyzing}
+              >
+                <Upload className="w-4 h-4 mr-2" />
+                {isAnalyzing ? 'Analyzing...' : 'Submit Report'}
+              </Button>
+            </form>
+          </Card>
+        </div>
+
+        {/* AI Suggestions Panel */}
+        {showAISuggestions && (
+          <div className="lg:col-span-1 space-y-4">
+            <AISuggestionCard
+              suggestions={aiSuggestions}
+              isAnalyzing={isAnalyzing}
+              onAcceptSuggestion={handleAISuggestionAccept}
+              onDismiss={() => setShowAISuggestions(false)}
+              currentValues={{
+                category: formData.category,
+                subcategory: formData.subcategory,
+                priority: formData.priority
+              }}
+            />
+          </div>
+        )}
+      </div>
     </div>
   );
 };

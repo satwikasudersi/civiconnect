@@ -7,7 +7,7 @@ import StatusTracker from '@/components/StatusTracker';
 import Suggestions from '@/components/Suggestions';
 import Analytics from '@/components/Analytics';
 import MyReports from '@/components/MyReports';
-import AIChatbot from '@/components/AIChatbot';
+import EnhancedAIChatbot from '@/components/EnhancedAIChatbot';
 import BlockchainReports from '@/components/BlockchainReports';
 import civicHero from '@/assets/civic-hero.jpg';
 const Index = () => {
@@ -105,7 +105,7 @@ const Index = () => {
       </footer>
 
       {/* AI Chatbot */}
-      <AIChatbot />
+      <EnhancedAIChatbot />
     </div>;
 };
 export default Index;
