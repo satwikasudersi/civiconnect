@@ -1,67 +1,187 @@
-import { Card } from '@/components/ui/card';
-import { 
-  TrendingUp, 
-  MapPin, 
-  Clock, 
-  Users, 
-  BarChart3,
-  Calendar,
-  Award,
-  AlertTriangle
-} from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, Area, AreaChart } from 'recharts';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { TrendingUp, TrendingDown, Clock, CheckCircle2, AlertTriangle, Users, MapPin, Calendar, BarChart3, Award } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+
+interface AnalyticsData {
+  totalComplaints: number;
+  resolvedComplaints: number;
+  pendingComplaints: number;
+  highPriorityComplaints: number;
+  categoryData: Array<{ category: string; count: number; color: string }>;
+  statusData: Array<{ status: string; count: number; color: string }>;
+  monthlyData: Array<{ month: string; complaints: number; resolved: number }>;
+  priorityData: Array<{ priority: string; count: number; color: string }>;
+}
+
+const COLORS = {
+  primary: 'hsl(var(--primary))',
+  secondary: 'hsl(var(--secondary))',
+  success: 'hsl(var(--success))',
+  warning: 'hsl(var(--warning))',
+  destructive: 'hsl(var(--destructive))',
+  muted: 'hsl(var(--muted))',
+};
 
 const Analytics = () => {
-  const totalIssues = 145;
-  const resolvedIssues = 89;
-  const inProgressIssues = 32;
-  const reportedIssues = 24;
-  
-  const resolutionRate = Math.round((resolvedIssues / totalIssues) * 100);
-  const avgResolutionTime = '5.2 days';
+  const [data, setData] = useState<AnalyticsData>({
+    totalComplaints: 0,
+    resolvedComplaints: 0,
+    pendingComplaints: 0,
+    highPriorityComplaints: 0,
+    categoryData: [],
+    statusData: [],
+    monthlyData: [],
+    priorityData: []
+  });
+  const [loading, setLoading] = useState(true);
 
-  const categoryData = [
-    { name: 'Road Issues', count: 45, percentage: 31 },
-    { name: 'Street Lighting', count: 28, percentage: 19 },
-    { name: 'Waste Management', count: 35, percentage: 24 },
-    { name: 'Parks & Recreation', count: 22, percentage: 15 },
-    { name: 'Construction Issues', count: 15, percentage: 11 }
-  ];
+  useEffect(() => {
+    fetchAnalyticsData();
+  }, []);
 
-  const recentActivity = [
-    { action: 'Issue Resolved', item: 'Broken streetlight on Oak Ave', time: '2 hours ago', type: 'resolved' },
-    { action: 'New Report', item: 'Pothole on Main Street', time: '4 hours ago', type: 'reported' },
-    { action: 'Status Updated', item: 'Park maintenance request', time: '6 hours ago', type: 'progress' },
-    { action: 'Issue Resolved', item: 'Trash collection delay', time: '1 day ago', type: 'resolved' },
-    { action: 'New Suggestion', item: 'Traffic signal timing improvement', time: '1 day ago', type: 'suggestion' }
-  ];
+  const fetchAnalyticsData = async () => {
+    try {
+      const { data: issues, error } = await supabase
+        .from('issues')
+        .select('*');
 
-  const topLocations = [
-    { location: 'Suncity', issues: 23 },
-    { location: 'Manikonda', issues: 18 },
-    { location: 'Tolichowki', issues: 15 },
-    { location: 'Langerhouze', issues: 12 },
-    { location: 'VJIT', issues: 9 }
-  ];
+      if (error) throw error;
 
-  const getActivityIcon = (type: string) => {
-    switch (type) {
-      case 'resolved':
-        return <div className="w-2 h-2 bg-status-resolved rounded-full" />;
-      case 'progress':
-        return <div className="w-2 h-2 bg-status-progress rounded-full" />;
-      case 'reported':
-        return <div className="w-2 h-2 bg-status-reported rounded-full" />;
-      default:
-        return <div className="w-2 h-2 bg-primary rounded-full" />;
+      if (issues) {
+        // Calculate totals
+        const totalComplaints = issues.length;
+        const resolvedComplaints = issues.filter(issue => issue.status === 'resolved').length;
+        const pendingComplaints = issues.filter(issue => issue.status === 'reported').length;
+        const highPriorityComplaints = issues.filter(issue => issue.priority === 'high').length;
+
+        // Category data
+        const categoryCount = issues.reduce((acc: Record<string, number>, issue) => {
+          acc[issue.category] = (acc[issue.category] || 0) + 1;
+          return acc;
+        }, {});
+
+        const categoryData = Object.entries(categoryCount).map(([category, count], index) => ({
+          category,
+          count: count as number,
+          color: `hsl(${index * 45}, 70%, 60%)`
+        }));
+
+        // Status data
+        const statusCount = issues.reduce((acc: Record<string, number>, issue) => {
+          acc[issue.status] = (acc[issue.status] || 0) + 1;
+          return acc;
+        }, {});
+
+        const statusData = [
+          { status: 'reported', count: statusCount.reported || 0, color: COLORS.warning },
+          { status: 'in-progress', count: statusCount['in-progress'] || 0, color: COLORS.primary },
+          { status: 'resolved', count: statusCount.resolved || 0, color: COLORS.success }
+        ];
+
+        // Priority data
+        const priorityCount = issues.reduce((acc: Record<string, number>, issue) => {
+          acc[issue.priority] = (acc[issue.priority] || 0) + 1;
+          return acc;
+        }, {});
+
+        const priorityData = [
+          { priority: 'low', count: priorityCount.low || 0, color: COLORS.success },
+          { priority: 'medium', count: priorityCount.medium || 0, color: COLORS.warning },
+          { priority: 'high', count: priorityCount.high || 0, color: COLORS.destructive }
+        ];
+
+        // Monthly data (mock for demo)
+        const monthlyData = [
+          { month: 'Jan', complaints: 45, resolved: 32 },
+          { month: 'Feb', complaints: 52, resolved: 41 },
+          { month: 'Mar', complaints: 61, resolved: 38 },
+          { month: 'Apr', complaints: 58, resolved: 45 },
+          { month: 'May', complaints: 67, resolved: 52 },
+          { month: 'Jun', complaints: totalComplaints, resolved: resolvedComplaints }
+        ];
+
+        setData({
+          totalComplaints,
+          resolvedComplaints,
+          pendingComplaints,
+          highPriorityComplaints,
+          categoryData,
+          statusData,
+          monthlyData,
+          priorityData
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching analytics:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  return (
-    <div className="max-w-7xl mx-auto p-6">
-      <div className="mb-8">
-        <h2 className="text-3xl font-bold text-foreground mb-2">Analytics Dashboard</h2>
-        <p className="text-muted-foreground">Monitor community engagement and issue resolution metrics.</p>
+  const StatCard = ({ title, value, icon: Icon, trend, description, color = "primary" }: any) => (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      whileHover={{ scale: 1.02 }}
+      className="group"
+    >
+      <Card className="glass border-primary/20 hover:border-primary/40 transition-all duration-300 hover:shadow-glow">
+        <CardContent className="p-6">
+          <div className="flex items-center justify-between">
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-muted-foreground">{title}</p>
+              <div className="flex items-center space-x-2">
+                <p className="text-3xl font-bold gradient-text">{value}</p>
+                {trend && (
+                  <Badge variant={trend > 0 ? "default" : "destructive"} className="text-xs">
+                    {trend > 0 ? <TrendingUp className="w-3 h-3 mr-1" /> : <TrendingDown className="w-3 h-3 mr-1" />}
+                    {Math.abs(trend)}%
+                  </Badge>
+                )}
+              </div>
+              {description && (
+                <p className="text-xs text-muted-foreground">{description}</p>
+              )}
+            </div>
+            <div className={`p-3 rounded-xl bg-gradient-${color} group-hover:shadow-glow transition-all duration-300`}>
+              <Icon className="w-6 h-6 text-white" />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </motion.div>
+  );
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+          className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full"
+        />
       </div>
+    );
+  }
+
+  const resolutionRate = data.totalComplaints > 0 ? Math.round((data.resolvedComplaints / data.totalComplaints) * 100) : 0;
+  const avgResolutionTime = '5.2 days';
+
+  return (
+    <div className="min-h-screen bg-gradient-surface p-6 space-y-8">
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="text-center space-y-4"
+      >
+        <h1 className="text-4xl font-bold gradient-text">Analytics Dashboard</h1>
+        <p className="text-xl text-muted-foreground">Real-time insights into community complaints</p>
+      </motion.div>
 
       {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
