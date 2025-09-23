@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { 
@@ -14,7 +15,8 @@ import {
   LogOut,
   User,
   Shield,
-  Camera
+  Camera,
+  ChevronDown
 } from 'lucide-react';
 
 const Header = ({ activeTab, setActiveTab }: { 
@@ -142,34 +144,43 @@ const Header = ({ activeTab, setActiveTab }: {
               })}
             </nav>
             
-            {/* User Info and Sign Out */}
+            {/* User Profile Dropdown */}
             <div className="flex items-center space-x-4 border-l border-border/50 pl-6">
-              <div className="flex items-center space-x-3">
-                <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
-                  <Avatar className="w-10 h-10 ring-2 ring-primary/20 hover:ring-primary/40 transition-all shadow-soft">
-                    <AvatarImage src={avatarUrl} alt={getUserDisplayName()} />
-                    <AvatarFallback className="bg-gradient-primary text-white font-semibold">
-                      {getUserInitials()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="absolute inset-0 bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                    <Camera className="h-4 w-4 text-white" />
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <div className="flex items-center space-x-3 cursor-pointer hover:bg-secondary/50 rounded-xl px-3 py-2 transition-colors">
+                    <div className="relative group">
+                      <Avatar className="w-10 h-10 ring-2 ring-primary/20 hover:ring-primary/40 transition-all shadow-soft">
+                        <AvatarImage src={avatarUrl} alt={getUserDisplayName()} />
+                        <AvatarFallback className="bg-gradient-primary text-white font-semibold">
+                          {getUserInitials()}
+                        </AvatarFallback>
+                      </Avatar>
+                    </div>
+                    <div className="hidden lg:block">
+                      <p className="text-sm font-medium text-foreground">{getUserDisplayName()}</p>
+                      <p className="text-xs text-muted-foreground">Active User</p>
+                    </div>
+                    <ChevronDown className="w-4 h-4 text-muted-foreground" />
                   </div>
-                </div>
-                <div className="hidden lg:block">
-                  <p className="text-sm font-medium text-foreground">{getUserDisplayName()}</p>
-                  <p className="text-xs text-muted-foreground">Active User</p>
-                </div>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleSignOut}
-                className="btn-modern text-white border-primary/30 hover:border-primary hover:shadow-glow"
-              >
-                <LogOut className="w-4 h-4 mr-2" />
-                Sign Out
-              </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem onClick={() => fileInputRef.current?.click()}>
+                    <Camera className="w-4 h-4 mr-2" />
+                    Change Avatar
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => setActiveTab('reports')}>
+                    <FileText className="w-4 h-4 mr-2" />
+                    My Reports
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleSignOut} className="text-red-600 focus:text-red-600">
+                    <LogOut className="w-4 h-4 mr-2" />
+                    Sign Out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
             
             <Input
@@ -222,30 +233,45 @@ const Header = ({ activeTab, setActiveTab }: {
                 );
               })}
               
-              {/* Mobile User Info and Sign Out */}
+              {/* Mobile User Info and Dropdown */}
               <div className="border-t border-primary-foreground/20 pt-2 mt-2">
-                <div className="flex items-center space-x-3 px-4 py-2">
-                  <div className="relative" onClick={() => fileInputRef.current?.click()}>
-                    <Avatar className="w-8 h-8 cursor-pointer">
-                      <AvatarImage src={avatarUrl} alt={getUserDisplayName()} />
-                      <AvatarFallback className="bg-gradient-primary text-white text-xs font-semibold">
-                        {getUserInitials()}
-                      </AvatarFallback>
-                    </Avatar>
-                  </div>
-                  <div className="text-sm">
-                    <div className="font-medium">{getUserDisplayName()}</div>
-                    <div className="text-muted-foreground text-xs">{user?.email}</div>
+                <div className="flex items-center justify-between px-4 py-2">
+                  <div className="flex items-center space-x-3">
+                    <div className="relative" onClick={() => fileInputRef.current?.click()}>
+                      <Avatar className="w-8 h-8 cursor-pointer">
+                        <AvatarImage src={avatarUrl} alt={getUserDisplayName()} />
+                        <AvatarFallback className="bg-gradient-primary text-white text-xs font-semibold">
+                          {getUserInitials()}
+                        </AvatarFallback>
+                      </Avatar>
+                    </div>
+                    <div className="text-sm">
+                      <div className="font-medium">{getUserDisplayName()}</div>
+                      <div className="text-muted-foreground text-xs">{user?.email}</div>
+                    </div>
                   </div>
                 </div>
-                <Button
-                  variant="ghost"
-                  onClick={handleSignOut}
-                  className="w-full justify-start px-4 py-2 hover:bg-primary-foreground/10"
-                >
-                  <LogOut className="w-4 h-4 mr-2" />
-                  <span>Sign Out</span>
-                </Button>
+                <div className="px-2 space-y-1">
+                  <Button
+                    variant="ghost"
+                    onClick={() => {
+                      setActiveTab('reports');
+                      setMobileMenuOpen(false);
+                    }}
+                    className="w-full justify-start px-4 py-2 hover:bg-primary-foreground/10"
+                  >
+                    <FileText className="w-4 h-4 mr-2" />
+                    <span>My Reports</span>
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    onClick={handleSignOut}
+                    className="w-full justify-start px-4 py-2 hover:bg-primary-foreground/10 text-red-400 hover:text-red-300"
+                  >
+                    <LogOut className="w-4 h-4 mr-2" />
+                    <span>Sign Out</span>
+                  </Button>
+                </div>
               </div>
             </nav>
           </div>

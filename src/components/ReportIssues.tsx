@@ -24,10 +24,12 @@ import {
   Square,
   Sparkles,
   Bot,
-  Zap
+  Zap,
+  TestTube
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { saveIssue } from '@/lib/supabaseOperations';
+import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSpeechRecognition } from '@/hooks/useSpeechRecognition';
 import { useAIComplaintAssistant } from '@/hooks/useAIComplaintAssistant';
@@ -90,7 +92,8 @@ const ReportIssues = () => {
 
   const categories = [
     { id: 'municipal', label: 'Municipal Corporation', icon: Shield },
-    { id: 'corruption', label: 'Political Corruption', icon: AlertTriangle }
+    { id: 'corruption', label: 'Political Corruption', icon: AlertTriangle },
+    { id: 'test_case', label: 'TEST CASE', icon: TestTube }
   ];
 
   const subcategories = {
@@ -103,7 +106,10 @@ const ReportIssues = () => {
       { id: 'parks', label: 'Parks & Recreation', icon: TreePine },
       { id: 'corpse', label: 'Corpse on Streets', icon: AlertCircle }
     ],
-    corruption: []
+    corruption: [],
+    test_case: [
+      { id: 'test_general', label: 'General Test', icon: TestTube }
+    ]
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -158,9 +164,20 @@ const ReportIssues = () => {
       return;
     }
 
+    if (formData.category === 'test_case' && !formData.subcategory) {
+      toast({
+        title: "Missing Information",
+        description: "Please select a subcategory for TEST CASE issues.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     try {
       const categoryValue = formData.category === 'municipal' && formData.subcategory 
         ? formData.subcategory 
+        : formData.category === 'test_case' && formData.subcategory
+        ? formData.subcategory
         : formData.category;
       
       const result = await saveIssue({
@@ -173,6 +190,53 @@ const ReportIssues = () => {
       });
 
       if (result) {
+        // Send TEST CASE notifications if category is test_case
+        if (formData.category === 'test_case') {
+          try {
+            const { error: notificationError } = await supabase.functions.invoke('send-test-notifications', {
+              body: {
+                title: formData.title,
+                description: formData.description,
+                category: 'TEST CASE',
+                subcategory: formData.subcategory,
+                location: formData.location,
+                priority: formData.priority,
+                userName: user?.user_metadata?.display_name || user?.email || 'Unknown User',
+                userEmail: user?.email || 'unknown@email.com',
+                submissionTime: new Date().toLocaleString()
+              }
+            });
+
+            if (notificationError) {
+              console.error('Error sending TEST CASE notifications:', notificationError);
+              toast({
+                title: "Report Submitted",
+                description: "Issue reported successfully, but there was an issue sending notifications.",
+                variant: "default"
+              });
+            } else {
+              toast({
+                title: "TEST CASE Alert Sent",
+                description: "Report submitted and notifications sent to specified contacts.",
+                variant: "default"
+              });
+            }
+          } catch (notificationError) {
+            console.error('Error with TEST CASE notifications:', notificationError);
+            toast({
+              title: "Report Submitted",
+              description: "Issue reported successfully, but there was an issue sending notifications.",
+              variant: "default"
+            });
+          }
+        } else {
+          toast({
+            title: "Issue Reported",
+            description: "Your issue has been submitted successfully.",
+            variant: "default"
+          });
+        }
+        
         // Reset form and AI
         setFormData({
           title: '',
