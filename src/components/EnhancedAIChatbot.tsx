@@ -29,13 +29,14 @@ interface StepByStepData {
   priority?: string;
 }
 
+// Enhanced initial greeting with personalized welcome message
 export default function EnhancedAIChatbot() {
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
-      content: '👋 Hello! I\'m your AI civic assistant for Telangana.\n\n🎯 **I can help you with:**\n• 📝 Report complaints step by step\n• 📊 Track your complaint status in real-time\n• 🏢 Understand issue categories & authorities\n• 💬 Answer questions about civic services\n• 🔍 Check your submission history\n\n**Quick commands:**\n• "Track my complaints" - See your status\n• "Report an issue" - Step-by-step guidance\n• "My complaint history" - View all submissions\n\nWhat would you like to do today? 😊',
+      content: 'Hi! I\'m your AI civic assistant for Telangana. I can help you report complaints, check status, find authorities, and navigate platform features.\n\nTry asking: "How do I track my complaints?" or "Where can I upload images?" I have answers to 25+ common questions plus real-time access to your data!',
       sender: 'ai',
       timestamp: new Date(),
       type: 'guidance'
