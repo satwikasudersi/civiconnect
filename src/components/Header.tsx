@@ -170,8 +170,8 @@ const Header = ({ activeTab, setActiveTab }: {
                     Change Avatar
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => setActiveTab('reports')}>
-                    <FileText className="w-4 h-4 mr-2" />
+                  <DropdownMenuItem onClick={() => setActiveTab('myreports')}>
+                    <User className="w-4 h-4 mr-2" />
                     My Reports
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
@@ -255,7 +255,7 @@ const Header = ({ activeTab, setActiveTab }: {
                   <Button
                     variant="ghost"
                     onClick={() => {
-                      setActiveTab('reports');
+                      setActiveTab('myreports');
                       setMobileMenuOpen(false);
                     }}
                     className="w-full justify-start px-4 py-2 hover:bg-primary-foreground/10"
