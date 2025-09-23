@@ -17,6 +17,7 @@ export type Database = {
       issues: {
         Row: {
           category: string
+          completed_at: string | null
           created_at: string
           description: string
           id: string
@@ -30,6 +31,7 @@ export type Database = {
         }
         Insert: {
           category: string
+          completed_at?: string | null
           created_at?: string
           description: string
           id?: string
@@ -43,6 +45,7 @@ export type Database = {
         }
         Update: {
           category?: string
+          completed_at?: string | null
           created_at?: string
           description?: string
           id?: string

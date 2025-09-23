@@ -15,9 +15,10 @@ import {
   TreePine,
   AlertCircle,
   AlertTriangle,
-  Shield
+  Shield,
+  CheckCircle
 } from 'lucide-react';
-import { getIssues, deleteIssue, type Issue } from '@/lib/supabaseOperations';
+import { getIssues, deleteIssue, completeIssue, type Issue } from '@/lib/supabaseOperations';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { formatDistanceToNow } from 'date-fns';
@@ -55,6 +56,19 @@ const MyReports = () => {
       const success = await deleteIssue(issueId);
       if (success) {
         setIssues(issues.filter(issue => issue.id !== issueId));
+      }
+    }
+  };
+
+  const handleCompleteIssue = async (issueId: string) => {
+    if (window.confirm('Are you sure you want to mark this issue as completed?')) {
+      const success = await completeIssue(issueId);
+      if (success) {
+        setIssues(issues.map(issue => 
+          issue.id === issueId 
+            ? { ...issue, status: 'resolved', completed_at: new Date().toISOString() }
+            : issue
+        ));
       }
     }
   };
@@ -181,6 +195,17 @@ const MyReports = () => {
                       >
                         <Eye className="w-3 h-3 mr-1" />
                         View Image
+                      </Button>
+                    )}
+                    {issue.status !== 'resolved' && !issue.completed_at && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleCompleteIssue(issue.id)}
+                        className="text-green-600 hover:text-green-700"
+                      >
+                        <CheckCircle className="w-3 h-3 mr-1" />
+                        Complete
                       </Button>
                     )}
                     <Button

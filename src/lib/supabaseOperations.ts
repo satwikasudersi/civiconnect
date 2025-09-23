@@ -13,6 +13,7 @@ export interface Issue {
   user_id: string;
   created_at: string;
   updated_at: string;
+  completed_at?: string;
 }
 
 export interface Suggestion {
@@ -256,5 +257,37 @@ export const updateSuggestionLikes = async (suggestionId: string, likes: number)
     }
   } catch (error) {
     console.error('Error updating suggestion likes:', error);
+  }
+};
+
+export const completeIssue = async (issueId: string): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('issues')
+      .update({ 
+        status: 'resolved',
+        completed_at: new Date().toISOString()
+      })
+      .eq('id', issueId);
+
+    if (error) {
+      console.error('Error completing issue:', error);
+      toast({
+        title: "Error completing issue",
+        description: "Please try again later.",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    toast({
+      title: "Issue completed",
+      description: "The issue has been marked as resolved.",
+    });
+
+    return true;
+  } catch (error) {
+    console.error('Error completing issue:', error);
+    return false;
   }
 };
