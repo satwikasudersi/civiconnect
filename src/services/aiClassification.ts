@@ -61,6 +61,12 @@ export const classifyComplaintText = async (
       return getFallbackClassification(combinedText, hasEmergencyKeyword, hasHighPriorityKeyword);
     }
 
+    // Check if the response contains an error (e.g., API quota exceeded)
+    if (data.error) {
+      console.error('AI Classification service error:', data.error);
+      return getFallbackClassification(combinedText, hasEmergencyKeyword, hasHighPriorityKeyword);
+    }
+
     return {
       category: data.category || 'municipal',
       subcategory: data.subcategory,

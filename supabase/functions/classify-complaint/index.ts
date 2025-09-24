@@ -100,7 +100,7 @@ Analyze the text and respond with JSON:
       confidence: 0.5,
       reasoning: 'Fallback due to error'
     }), {
-      status: 500,
+      status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
