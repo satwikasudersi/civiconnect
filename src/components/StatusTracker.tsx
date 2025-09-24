@@ -13,9 +13,10 @@ import {
   CheckCircle,
   AlertTriangle,
   HelpCircle,
-  Trash
+  Trash,
+  CheckCircle2
 } from 'lucide-react';
-import { getIssues, Issue, deleteIssue } from '@/lib/supabaseOperations';
+import { getIssues, Issue, deleteIssue, completeIssue } from '@/lib/supabaseOperations';
 import { useToast } from '@/hooks/use-toast';
 
 const StatusTracker = ({ onViewSuggestions }: { onViewSuggestions: (issue: Issue) => void }) => {
@@ -50,6 +51,14 @@ const StatusTracker = ({ onViewSuggestions }: { onViewSuggestions: (issue: Issue
 
   const handleDeleteIssue = async (issueId: string) => {
     const success = await deleteIssue(issueId);
+    if (success) {
+      const fetchedIssues = await getIssues();
+      setIssues(fetchedIssues);
+    }
+  };
+
+  const handleCompleteIssue = async (issueId: string) => {
+    const success = await completeIssue(issueId);
     if (success) {
       const fetchedIssues = await getIssues();
       setIssues(fetchedIssues);
@@ -281,6 +290,20 @@ const StatusTracker = ({ onViewSuggestions }: { onViewSuggestions: (issue: Issue
                 
                 {/* Action buttons */}
                 <div className="flex items-center gap-4">
+                  {(issue.status === 'reported' || issue.status === 'progress') && !issue.completed_at && (
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        if (window.confirm('Mark this issue as completed? This will change the status to resolved.')) {
+                          handleCompleteIssue(issue.id);
+                        }
+                      }}
+                      className="flex items-center gap-2 px-6 py-3 text-green-600 border-green-500/50 hover:border-green-500 hover:bg-green-500/10 transition-all duration-300"
+                    >
+                      <CheckCircle className="w-5 h-5" />
+                      Mark Complete
+                    </Button>
+                  )}
                   <Button
                     variant="outline"
                     onClick={() => onViewSuggestions(issue)}

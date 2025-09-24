@@ -197,7 +197,7 @@ const MyReports = () => {
                         View Image
                       </Button>
                     )}
-                    {issue.status !== 'resolved' && !issue.completed_at && (
+                    {(issue.status === 'reported' || issue.status === 'in-progress') && !issue.completed_at && (
                       <Button
                         variant="outline"
                         size="sm"

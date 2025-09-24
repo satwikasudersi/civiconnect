@@ -106,10 +106,7 @@ const ReportIssues = () => {
       { id: 'parks', label: 'Parks & Recreation', icon: TreePine },
       { id: 'corpse', label: 'Corpse on Streets', icon: AlertCircle }
     ],
-    corruption: [],
-    test_case: [
-      { id: 'test_general', label: 'General Test', icon: TestTube }
-    ]
+    corruption: []
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -164,20 +161,9 @@ const ReportIssues = () => {
       return;
     }
 
-    if (formData.category === 'test_case' && !formData.subcategory) {
-      toast({
-        title: "Missing Information",
-        description: "Please select a subcategory for TEST CASE issues.",
-        variant: "destructive"
-      });
-      return;
-    }
-
     try {
       const categoryValue = formData.category === 'municipal' && formData.subcategory 
         ? formData.subcategory 
-        : formData.category === 'test_case' && formData.subcategory
-        ? formData.subcategory
         : formData.category;
       
       const result = await saveIssue({
@@ -417,31 +403,6 @@ const ReportIssues = () => {
                   </SelectContent>
                 </Select>
               </div>
-
-              {/* Subcategory Selection */}
-              {formData.category === 'municipal' && (
-                <div className="space-y-2">
-                  <Label htmlFor="subcategory" className="text-sm font-medium">Municipal Issue Type *</Label>
-                  <Select value={formData.subcategory} onValueChange={(value) => setFormData(prev => ({ ...prev, subcategory: value }))}>
-                    <SelectTrigger className="transition-smooth focus:shadow-soft">
-                      <SelectValue placeholder="Select issue type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {subcategories.municipal.map((sub) => {
-                        const Icon = sub.icon;
-                        return (
-                          <SelectItem key={sub.id} value={sub.id}>
-                            <div className="flex items-center space-x-2">
-                              <Icon className="w-4 h-4" />
-                              <span>{sub.label}</span>
-                            </div>
-                          </SelectItem>
-                        );
-                      })}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
 
               {/* Priority Selection */}
               <div className="space-y-2">
