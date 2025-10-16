@@ -191,7 +191,13 @@ const MyReports = () => {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => window.open(issue.image_url!, '_blank')}
+                        onClick={async () => {
+                          const { getSignedImageUrl } = await import('@/lib/imageUtils');
+                          const signedUrl = await getSignedImageUrl(issue.image_url);
+                          if (signedUrl) {
+                            window.open(signedUrl, '_blank');
+                          }
+                        }}
                       >
                         <Eye className="w-3 h-3 mr-1" />
                         View Image

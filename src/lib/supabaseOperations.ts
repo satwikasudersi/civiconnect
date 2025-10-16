@@ -66,10 +66,9 @@ export const saveIssue = async (issueData: {
           variant: "destructive",
         });
       } else {
-        const { data: { publicUrl } } = supabase.storage
-          .from('issue-images')
-          .getPublicUrl(uploadData.path);
-        imageUrl = publicUrl;
+        // Store the file path in the database instead of the public URL
+        // Signed URLs will be generated when displaying images
+        imageUrl = uploadData.path;
       }
     }
 

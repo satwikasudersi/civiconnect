@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { getSuggestions, saveSuggestion, updateSuggestionLikes, Suggestion as StoredSuggestion, Issue as DatabaseIssue } from '@/lib/supabaseOperations';
+import { IssueImage } from '@/components/IssueImage';
 import { useAuth } from '@/contexts/AuthContext';
 
 type Suggestion = StoredSuggestion;
@@ -148,16 +149,7 @@ const Suggestions = ({ issue, onBack }: { issue: Issue; onBack: () => void }) =>
           </div>
           
           {/* Issue Images */}
-          {issue.image_url && (
-            <div className="lg:w-80">
-              <h3 className="text-sm font-medium text-muted-foreground mb-3">Issue Photo</h3>
-              <img
-                src={issue.image_url}
-                alt="Issue photo"
-                className="w-full h-48 object-cover rounded-lg border shadow-soft"
-              />
-            </div>
-          )}
+          {issue.image_url && <IssueImage imageUrl={issue.image_url} />}
         </div>
       </Card>
 
