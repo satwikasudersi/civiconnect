@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "npm:resend@2.0.0";
+import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -8,16 +9,27 @@ const corsHeaders = {
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
-interface NotificationData {
-  title: string;
-  description: string;
-  category: string;
-  subcategory?: string;
-  location?: string;
-  priority: string;
-  userName: string;
-  userEmail: string;
-  submissionTime: string;
+// Input validation schema
+const notificationSchema = z.object({
+  title: z.string().min(1).max(200),
+  description: z.string().min(1).max(2000),
+  category: z.string().max(100),
+  subcategory: z.string().max(100).optional(),
+  location: z.string().max(300).optional(),
+  priority: z.enum(['low', 'medium', 'high']),
+  userName: z.string().min(1).max(100),
+  userEmail: z.string().email().max(255),
+  submissionTime: z.string()
+});
+
+// HTML sanitization helper
+function escapeHtml(unsafe: string): string {
+  return unsafe
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
 
 serve(async (req) => {
@@ -26,11 +38,25 @@ serve(async (req) => {
   }
 
   try {
-    const notificationData: NotificationData = await req.json();
+    // Validate request body
+    const requestBody = await req.json();
+    const validationResult = notificationSchema.safeParse(requestBody);
+    
+    if (!validationResult.success) {
+      return new Response(JSON.stringify({ 
+        error: 'Invalid request data',
+        details: validationResult.error.issues 
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    const notificationData = validationResult.data;
     
     console.log('Processing TEST CASE notification:', notificationData);
 
-    // Prepare the report content
+    // Prepare the report content with sanitized data
     const reportContent = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9f9f9;">
         <div style="background-color: #ffffff; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
@@ -45,16 +71,16 @@ serve(async (req) => {
           <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
             <tr style="background-color: #f8f9fa;">
               <td style="padding: 12px; border: 1px solid #dee2e6; font-weight: bold; width: 30%;">Title:</td>
-              <td style="padding: 12px; border: 1px solid #dee2e6;">${notificationData.title}</td>
+              <td style="padding: 12px; border: 1px solid #dee2e6;">${escapeHtml(notificationData.title)}</td>
             </tr>
             <tr>
               <td style="padding: 12px; border: 1px solid #dee2e6; font-weight: bold;">Category:</td>
-              <td style="padding: 12px; border: 1px solid #dee2e6;">${notificationData.category}</td>
+              <td style="padding: 12px; border: 1px solid #dee2e6;">${escapeHtml(notificationData.category)}</td>
             </tr>
             ${notificationData.subcategory ? `
             <tr style="background-color: #f8f9fa;">
               <td style="padding: 12px; border: 1px solid #dee2e6; font-weight: bold;">Subcategory:</td>
-              <td style="padding: 12px; border: 1px solid #dee2e6;">${notificationData.subcategory}</td>
+              <td style="padding: 12px; border: 1px solid #dee2e6;">${escapeHtml(notificationData.subcategory)}</td>
             </tr>
             ` : ''}
             <tr${!notificationData.subcategory ? ' style="background-color: #f8f9fa;"' : ''}>
@@ -72,22 +98,22 @@ serve(async (req) => {
             ${notificationData.location ? `
             <tr${notificationData.subcategory ? ' style="background-color: #f8f9fa;"' : ''}>
               <td style="padding: 12px; border: 1px solid #dee2e6; font-weight: bold;">Location:</td>
-              <td style="padding: 12px; border: 1px solid #dee2e6;">${notificationData.location}</td>
+              <td style="padding: 12px; border: 1px solid #dee2e6;">${escapeHtml(notificationData.location)}</td>
             </tr>
             ` : ''}
             <tr style="background-color: #f8f9fa;">
               <td style="padding: 12px; border: 1px solid #dee2e6; font-weight: bold;">Submitted by:</td>
-              <td style="padding: 12px; border: 1px solid #dee2e6;">${notificationData.userName} (${notificationData.userEmail})</td>
+              <td style="padding: 12px; border: 1px solid #dee2e6;">${escapeHtml(notificationData.userName)} (${escapeHtml(notificationData.userEmail)})</td>
             </tr>
             <tr>
               <td style="padding: 12px; border: 1px solid #dee2e6; font-weight: bold;">Submission Time:</td>
-              <td style="padding: 12px; border: 1px solid #dee2e6;">${notificationData.submissionTime}</td>
+              <td style="padding: 12px; border: 1px solid #dee2e6;">${escapeHtml(notificationData.submissionTime)}</td>
             </tr>
           </table>
           
           <h3 style="color: #333; margin-top: 25px; margin-bottom: 15px;">Description:</h3>
           <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; border-left: 4px solid #007bff;">
-            ${notificationData.description}
+            ${escapeHtml(notificationData.description)}
           </div>
           
           <div style="margin-top: 30px; padding: 20px; background-color: #e3f2fd; border-radius: 5px;">

@@ -1,6 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -10,6 +11,13 @@ const corsHeaders = {
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+
+// Input validation schema
+const chatRequestSchema = z.object({
+  message: z.string().min(1).max(2000),
+  conversationId: z.string().optional(),
+  context: z.any().optional()
+});
 
 // Enhanced helper function to get comprehensive user data
 const getUserComplaintData = async (supabase: any, userId: string) => {
@@ -738,23 +746,59 @@ serve(async (req) => {
   }
 
   try {
-    const { message, conversationId, context, userId } = await req.json();
-    console.log('Received message:', message, 'from user:', userId);
+    // Get and validate authorization
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
 
     // Create Supabase client
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-    // Get user profile data if authenticated
-    let userData = null;
-    if (userId) {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('user_id', userId)
-        .single();
-      userData = profile;
-      console.log('User data loaded:', userData?.display_name);
+    
+    // Get userId from JWT token
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    
+    if (authError || !user) {
+      console.error('Auth error:', authError);
+      return new Response(JSON.stringify({ error: 'Invalid authentication' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
     }
+
+    const userId = user.id;
+
+    // Validate request body
+    const requestBody = await req.json();
+    const validationResult = chatRequestSchema.safeParse(requestBody);
+    
+    if (!validationResult.success) {
+      console.error('Validation error:', validationResult.error);
+      return new Response(JSON.stringify({ 
+        error: 'Invalid request data',
+        details: validationResult.error.issues 
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    const { message, conversationId, context } = validationResult.data;
+    console.log('Received message:', message, 'from user:', userId);
+
+    // Get user profile data
+    let userData = null;
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('user_id', userId)
+      .single();
+    userData = profile;
+    console.log('User data loaded:', userData?.display_name);
 
     let response;
     let responseSource = 'unknown';

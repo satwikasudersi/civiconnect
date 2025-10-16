@@ -1,5 +1,6 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -8,17 +9,33 @@ const corsHeaders = {
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 
+// Input validation schema
+const classifyRequestSchema = z.object({
+  text: z.string().min(1).max(5000),
+  checkEmergency: z.boolean().optional()
+});
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { text, checkEmergency } = await req.json();
-
-    if (!text) {
-      throw new Error('Text is required for classification');
+    // Validate request body
+    const requestBody = await req.json();
+    const validationResult = classifyRequestSchema.safeParse(requestBody);
+    
+    if (!validationResult.success) {
+      return new Response(JSON.stringify({ 
+        error: 'Invalid request data',
+        details: validationResult.error.issues 
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
     }
+
+    const { text, checkEmergency } = validationResult.data;
 
     console.log('Classifying complaint text:', text);
 

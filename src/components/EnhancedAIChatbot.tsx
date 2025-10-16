@@ -178,14 +178,12 @@ export default function EnhancedAIChatbot() {
           }, 500);
         }
       } else {
-        // Regular AI chat with user context
-        const { data: { user } } = await supabase.auth.getUser();
+        // Regular AI chat - userId is now extracted from JWT token on server side
         const { data, error } = await supabase.functions.invoke('ai-chatbot', {
           body: {
             message: currentInput,
             conversationId: conversationId,
-            context: 'enhanced_chatbot',
-            userId: user?.id || null
+            context: 'enhanced_chatbot'
           }
         });
 

@@ -34,6 +34,20 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useSpeechRecognition } from '@/hooks/useSpeechRecognition';
 import { useAIComplaintAssistant } from '@/hooks/useAIComplaintAssistant';
 import AISuggestionCard from '@/components/AISuggestionCard';
+import { z } from 'zod';
+
+// Validation schema
+const reportSchema = z.object({
+  title: z.string().min(5, 'Title must be at least 5 characters').max(200, 'Title must be less than 200 characters'),
+  category: z.enum(['municipal', 'corruption', 'test_case'], {
+    errorMap: () => ({ message: 'Please select a valid category' })
+  }),
+  subcategory: z.string().max(100).optional(),
+  description: z.string().min(10, 'Description must be at least 10 characters').max(2000, 'Description must be less than 2000 characters'),
+  location: z.string().max(300, 'Location must be less than 300 characters').optional(),
+  priority: z.enum(['low', 'medium', 'high']),
+  images: z.array(z.instanceof(File)).max(5, 'Maximum 5 images allowed')
+});
 
 const ReportIssues = () => {
   const { toast } = useToast();
@@ -142,11 +156,23 @@ const ReportIssues = () => {
       });
       return;
     }
-    
-    if (!formData.title || !formData.category || !formData.description) {
+
+    // Validate form data
+    const validationResult = reportSchema.safeParse({
+      title: formData.title,
+      category: formData.category,
+      subcategory: formData.subcategory || undefined,
+      description: formData.description,
+      location: formData.location || undefined,
+      priority: formData.priority,
+      images: formData.images
+    });
+
+    if (!validationResult.success) {
+      const firstError = validationResult.error.errors[0];
       toast({
-        title: "Missing Information",
-        description: "Please fill in all required fields.",
+        title: "Validation Error",
+        description: firstError.message,
         variant: "destructive"
       });
       return;
