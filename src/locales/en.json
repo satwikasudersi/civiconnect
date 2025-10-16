@@ -1,0 +1,52 @@
+{
+  "nav": {
+    "reports": "Report Issues",
+    "status": "Status Tracker",
+    "myReports": "My Reports",
+    "blockchain": "Blockchain Reports",
+    "analytics": "Analytics"
+  },
+  "header": {
+    "signOut": "Sign Out",
+    "changeAvatar": "Change Avatar",
+    "language": "Language",
+    "theme": "Theme",
+    "darkMode": "Dark Mode",
+    "lightMode": "Light Mode"
+  },
+  "hero": {
+    "title": "Report & Track Civic Issues in Telangana",
+    "description": "Help improve your community by reporting issues and tracking their resolution with AI-powered assistance",
+    "reportButton": "Report an Issue",
+    "trackButton": "Track Status",
+    "aiPowered": "AI-Powered",
+    "aiDesc": "Smart classification and routing",
+    "realtime": "Real-time Tracking",
+    "realtimeDesc": "Monitor your reports instantly",
+    "community": "Community Driven",
+    "communityDesc": "Collective impact on local issues"
+  },
+  "chat": {
+    "title": "Civic Assistant",
+    "placeholder": "Type your message...",
+    "send": "Send",
+    "minimize": "Minimize",
+    "close": "Close",
+    "voiceMode": "Voice Mode",
+    "listening": "Listening...",
+    "quickActions": "Quick Actions",
+    "reportIssue": "Report Issue",
+    "trackStatus": "Track Status",
+    "getHelp": "Get Help"
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "view": "View"
+  }
+}

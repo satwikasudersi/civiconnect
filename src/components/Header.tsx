@@ -4,7 +4,10 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { useToast } from '@/hooks/use-toast';
+import { LanguageSelector } from '@/components/LanguageSelector';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import { 
   FileText, 
   MessageSquare, 
@@ -27,6 +30,7 @@ const Header = ({ activeTab, setActiveTab }: {
   const [avatarUrl, setAvatarUrl] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { user, signOut } = useAuth();
+  const { t } = useLanguage();
   const { toast } = useToast();
 
   // Load avatar from localStorage on mount
@@ -91,12 +95,12 @@ const Header = ({ activeTab, setActiveTab }: {
   };
 
   const navItems = [
-    { id: 'reports', label: 'Report Issues', icon: FileText },
-    { id: 'status', label: 'Status Tracker', icon: BarChart3 },
-    { id: 'myreports', label: 'My Reports', icon: User },
-    { id: 'blockchain', label: 'Blockchain', icon: Shield },
+    { id: 'reports', label: t('nav.reports'), icon: FileText },
+    { id: 'status', label: t('nav.status'), icon: BarChart3 },
+    { id: 'myreports', label: t('nav.myReports'), icon: User },
+    { id: 'blockchain', label: t('nav.blockchain'), icon: Shield },
     { id: 'suggestions', label: 'Suggestions', icon: MessageSquare },
-    { id: 'analytics', label: 'Analytics', icon: Settings }
+    { id: 'analytics', label: t('nav.analytics'), icon: Settings }
   ];
 
   return (
@@ -144,6 +148,12 @@ const Header = ({ activeTab, setActiveTab }: {
               })}
             </nav>
             
+            {/* Language and Theme Controls */}
+            <div className="flex items-center space-x-2">
+              <LanguageSelector />
+              <ThemeToggle />
+            </div>
+
             {/* User Profile Dropdown */}
             <div className="flex items-center space-x-4 border-l border-border/50 pl-6">
               <DropdownMenu>
@@ -167,17 +177,17 @@ const Header = ({ activeTab, setActiveTab }: {
                 <DropdownMenuContent align="end" className="w-48">
                   <DropdownMenuItem onClick={() => fileInputRef.current?.click()}>
                     <Camera className="w-4 h-4 mr-2" />
-                    Change Avatar
+                    {t('header.changeAvatar')}
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => setActiveTab('myreports')}>
                     <User className="w-4 h-4 mr-2" />
-                    My Reports
+                    {t('nav.myReports')}
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleSignOut} className="text-red-600 focus:text-red-600">
                     <LogOut className="w-4 h-4 mr-2" />
-                    Sign Out
+                    {t('header.signOut')}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -252,6 +262,10 @@ const Header = ({ activeTab, setActiveTab }: {
                   </div>
                 </div>
                 <div className="px-2 space-y-1">
+                  <div className="flex items-center justify-center space-x-2 py-2">
+                    <LanguageSelector />
+                    <ThemeToggle />
+                  </div>
                   <Button
                     variant="ghost"
                     onClick={() => {
@@ -261,7 +275,7 @@ const Header = ({ activeTab, setActiveTab }: {
                     className="w-full justify-start px-4 py-2 hover:bg-primary-foreground/10"
                   >
                     <FileText className="w-4 h-4 mr-2" />
-                    <span>My Reports</span>
+                    <span>{t('nav.myReports')}</span>
                   </Button>
                   <Button
                     variant="ghost"
@@ -269,7 +283,7 @@ const Header = ({ activeTab, setActiveTab }: {
                     className="w-full justify-start px-4 py-2 hover:bg-primary-foreground/10 text-red-400 hover:text-red-300"
                   >
                     <LogOut className="w-4 h-4 mr-2" />
-                    <span>Sign Out</span>
+                    <span>{t('header.signOut')}</span>
                   </Button>
                 </div>
               </div>

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import Header from '@/components/Header';
 import ReportIssues from '@/components/ReportIssues';
 import StatusTracker from '@/components/StatusTracker';
@@ -15,6 +16,7 @@ const Index = () => {
   const [activeTab, setActiveTab] = useState('reports');
   const [selectedIssue, setSelectedIssue] = useState<any | null>(null);
   const { user, loading } = useAuth();
+  const { t } = useLanguage();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -28,7 +30,7 @@ const Index = () => {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading...</p>
+          <p className="text-muted-foreground">{t('common.loading')}</p>
         </div>
       </div>
     );
@@ -80,14 +82,10 @@ const Index = () => {
             <div className="space-y-8 animate-fade-in">
               <div className="space-y-6">
                 <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-white leading-tight">
-                  Build <span className="gradient-text">Better</span>
-                  <br />
-                  Together
+                  {t('hero.title')}
                 </h1>
                 <p className="text-xl md:text-2xl mb-8 max-w-4xl mx-auto text-white/90 leading-relaxed">
-                  Your Streets. Your Voice. Your Power.
-                  <br />
-                  <span className="text-lg text-white/80">Transform your community with AI-powered civic reporting</span>
+                  {t('hero.description')}
                 </p>
               </div>
               
@@ -96,13 +94,13 @@ const Index = () => {
                   onClick={() => document.getElementById('report-form')?.scrollIntoView({ behavior: 'smooth' })} 
                   className="btn-modern px-10 py-4 text-xl font-bold rounded-2xl shadow-glow hover:shadow-hover transform hover:scale-105 transition-all duration-300"
                 >
-                  Report an Issue
+                  {t('hero.reportButton')}
                 </button>
                 <button 
                   onClick={() => setActiveTab('status')} 
                   className="glass px-10 py-4 text-xl font-semibold rounded-2xl text-white border border-white/30 hover:bg-white/20 hover:shadow-glow transition-all duration-300"
                 >
-                  View Dashboard
+                  {t('hero.trackButton')}
                 </button>
               </div>
               
@@ -112,22 +110,22 @@ const Index = () => {
                   <div className="w-12 h-12 bg-gradient-primary rounded-xl mx-auto mb-4 flex items-center justify-center">
                     <Shield className="w-6 h-6 text-white" />
                   </div>
-                  <h3 className="text-lg font-bold text-white mb-2">AI-Powered</h3>
-                  <p className="text-white/80">Smart classification and priority detection</p>
+                  <h3 className="text-lg font-bold text-white mb-2">{t('hero.aiPowered')}</h3>
+                  <p className="text-white/80">{t('hero.aiDesc')}</p>
                 </div>
                 <div className="glass p-6 rounded-2xl text-center border border-white/20">
                   <div className="w-12 h-12 bg-gradient-primary rounded-xl mx-auto mb-4 flex items-center justify-center">
                     <Eye className="w-6 h-6 text-white" />
                   </div>
-                  <h3 className="text-lg font-bold text-white mb-2">Real-time Tracking</h3>
-                  <p className="text-white/80">Monitor progress with live updates</p>
+                  <h3 className="text-lg font-bold text-white mb-2">{t('hero.realtime')}</h3>
+                  <p className="text-white/80">{t('hero.realtimeDesc')}</p>
                 </div>
                 <div className="glass p-6 rounded-2xl text-center border border-white/20">
                   <div className="w-12 h-12 bg-gradient-primary rounded-xl mx-auto mb-4 flex items-center justify-center">
                     <MessageSquare className="w-6 h-6 text-white" />
                   </div>
-                  <h3 className="text-lg font-bold text-white mb-2">Community Driven</h3>
-                  <p className="text-white/80">Collaborative problem solving</p>
+                  <h3 className="text-lg font-bold text-white mb-2">{t('hero.community')}</h3>
+                  <p className="text-white/80">{t('hero.communityDesc')}</p>
                 </div>
               </div>
             </div>

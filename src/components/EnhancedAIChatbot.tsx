@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAIComplaintAssistant } from '@/hooks/useAIComplaintAssistant';
 import { useSpeechRecognition } from '@/hooks/useSpeechRecognition';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { SmartChatInterface } from './SmartChatInterface';
 
 interface Message {
@@ -57,6 +58,7 @@ export default function EnhancedAIChatbot() {
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+  const { language, t } = useLanguage();
 
   const {
     chatStep,
@@ -72,7 +74,7 @@ export default function EnhancedAIChatbot() {
     stopListening,
     resetTranscript,
     isSupported: speechSupported
-  } = useSpeechRecognition();
+  } = useSpeechRecognition(language);
 
   useEffect(() => {
     if (transcript && isVoiceMode) {
@@ -401,7 +403,7 @@ Bookmark the "My Reports" page for quick status checking! 🎯`;
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 bg-gradient-primary text-primary-foreground rounded-t-lg border-b border-border/20">
           <div className="flex items-center space-x-2">
             <Bot className="h-5 w-5" />
-            <CardTitle className="text-lg font-semibold">AI Civic Assistant</CardTitle>
+            <CardTitle className="text-lg font-semibold">{t('chat.title')}</CardTitle>
             {stepByStepMode && (
               <Badge variant="secondary" className="text-xs">
                 Step-by-Step
@@ -441,7 +443,7 @@ Bookmark the "My Reports" page for quick status checking! 🎯`;
                   disabled={stepByStepMode}
                 >
                   <FileText className="h-3 w-3 mr-1" />
-                  Report Issue
+                  {t('chat.reportIssue')}
                 </Button>
                 <Button
                   variant="outline"
@@ -531,7 +533,7 @@ Bookmark the "My Reports" page for quick status checking! 🎯`;
                   value={inputMessage}
                   onChange={(e) => setInputMessage(e.target.value)}
                   onKeyPress={handleKeyPress}
-                  placeholder={stepByStepMode ? "Answer the current question..." : "Ask me about civic issues, report complaints..."}
+                  placeholder={t('chat.placeholder')}
                   disabled={isLoading}
                   className="flex-1 rounded-xl border-border/50 bg-background/80 focus:border-primary/50 transition-all"
                 />
@@ -542,6 +544,7 @@ Bookmark the "My Reports" page for quick status checking! 🎯`;
                     size="sm"
                     variant={isListening ? "destructive" : "outline"}
                     className="px-3 rounded-xl hover-scale transition-all"
+                    title={t('chat.voiceMode')}
                   >
                     {isListening ? <Square className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
                   </Button>
@@ -551,15 +554,16 @@ Bookmark the "My Reports" page for quick status checking! 🎯`;
                   disabled={!inputMessage.trim() || isLoading}
                   size="sm"
                   className="px-3 bg-gradient-primary hover:shadow-glow rounded-xl hover-scale transition-all"
+                  title={t('chat.send')}
                 >
                   <Send className="h-4 w-4" />
                 </Button>
               </div>
               <p className="text-xs text-muted-foreground/80 mt-2 text-center">
-                {stepByStepMode 
+                {isListening ? t('chat.listening') : (stepByStepMode 
                   ? '🔄 Step-by-step complaint reporting mode' 
                   : '🤖 AI assistant for Telangana civic reporting'
-                }
+                )}
               </p>
             </div>
           </CardContent>

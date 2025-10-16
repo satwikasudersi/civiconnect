@@ -120,7 +120,7 @@ interface SpeechRecognitionHook {
   resetTranscript: () => void;
 }
 
-export const useSpeechRecognition = (): SpeechRecognitionHook => {
+export const useSpeechRecognition = (language: string = 'en-US'): SpeechRecognitionHook => {
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [isSupported, setIsSupported] = useState(false);
@@ -137,7 +137,14 @@ export const useSpeechRecognition = (): SpeechRecognitionHook => {
 
         recognition.continuous = true;
         recognition.interimResults = true;
-        recognition.lang = 'en-US';
+        
+        // Map language codes to speech recognition codes
+        const langMap: { [key: string]: string } = {
+          'en': 'en-US',
+          'te': 'te-IN',
+          'hi': 'hi-IN'
+        };
+        recognition.lang = langMap[language] || language;
 
         recognition.onstart = () => {
           setIsListening(true);
@@ -175,7 +182,7 @@ export const useSpeechRecognition = (): SpeechRecognitionHook => {
         recognitionRef.current.stop();
       }
     };
-  }, []);
+  }, [language]);
 
   const startListening = () => {
     if (recognitionRef.current && !isListening) {
